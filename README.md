@@ -8,8 +8,8 @@ At this point, Funk is primarily a vehicle for me (Matt Gordon) to
 experiment with language design and learn about LLVM, but I do have a
 specific (and hopefully useful) end-goal in mind. In a nutshell, Funk is
 inspired by Haskell, but aims to be more pragmatic and to make it easier
-to reason about the performance of a program (and to optimize it) and not
-just its correctness.
+to reason about not just the correctness of a program but also its
+performance.
 
 I have these main goals for Funk:
 
@@ -21,7 +21,7 @@ I have these main goals for Funk:
     rather than run time.
 4.  It should compile to executable code which is fast and small.
 5.  Eventually, it should be a practical language which I (and
-    hopefully others) can use to write substantial application.
+    hopefully others) can use to write substantial applications.
 
 In support of those goals, Funk has these main characteristics:
 

@@ -102,12 +102,14 @@ defs = do
   eol
   return (Def n params e)
 
-
 expr :: Parser Expr
-expr = funcCall           -- Expr -> name Expr
-       <|> inParens expr  -- Expr -> "(" Expr ")"
-       <|> literal        -- Expr -> floatLiteral
-       <|> varRef         -- Expr -> name
+expr = funcCall         -- Expr -> name Expr
+       <|> expr'       -- Expr -> Expr'
+
+expr' :: Parser Expr
+expr' = inParens expr  -- Expr' -> "(" Expr ")"
+       <|> literal     -- Expr' -> floatLiteral
+       <|> varRef      -- Expr' -> name
 
 
 -- Expr -> name
@@ -122,9 +124,9 @@ literal :: Parser Expr
 literal = FloatLiteral <$> floatLiteral
 
 
--- Expr -> name Expr
+-- Expr -> name { Expr' }
 funcCall :: Parser Expr
 funcCall = do
   n <- Name <$> (name <|> inParens op)
-  args <-  many expr
+  args <-  many expr'
   return (Call n args)

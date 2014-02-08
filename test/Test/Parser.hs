@@ -37,12 +37,15 @@ checkDefs ds ds' = do
   forM_ (zip3 ds ds' [1..]) $ \(d, d', l) ->
     assertEqual ("For Def " ++ (show l) ++ ":") d d'
 
-
-testParserBasic :: Assertion
-testParserBasic = do
+parseAndCheck :: String -> [Def] -> Assertion
+parseAndCheck input expectedOutput = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
     Right (Module defs) -> checkDefs expectedOutput defs
+
+    
+testParserBasic :: Assertion
+testParserBasic = parseAndCheck input expectedOutput
   where
     input = "foo a b = add a b 3\n\
             \bar = foo 1 2\n\
@@ -59,10 +62,7 @@ testParserBasic = do
            [VarRef (Name "bar"), VarRef (Name "bar")]) ]
 
 testPrefixOp :: Assertion
-testPrefixOp = do
-  case parse "<testdata>" input of
-    Left e -> assertFailure (show e)
-    Right (Module defs) -> checkDefs expectedOutput defs
+testPrefixOp = parseAndCheck input expectedOutput
   where
     input = "foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"

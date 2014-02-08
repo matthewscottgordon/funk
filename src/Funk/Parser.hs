@@ -125,6 +125,7 @@ literal = FloatLiteral <$> floatLiteral
 
 
 -- Expr -> name { Expr' }
+-- Expr -> "(" op ")" { Expr' }
 funcCall :: Parser Expr
 funcCall = do
   n <- Name <$> (name <|> inParens op)

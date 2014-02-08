@@ -20,10 +20,40 @@ import Test.Framework (testGroup)
 import qualified Test.Framework
 import Test.Framework.Providers.HUnit
 
+import Funk.Parser
+import Funk.AST
+
+import Control.Monad (forM_)
+
 tests :: Test.Framework.Test
 tests = testGroup "Parser Tests"  [
           testCase "Basic" testParserBasic
         ]
 
+checkDefs :: [Def] -> [Def] -> Assertion
+checkDefs ds ds' = do
+  assertEqual "Wrong number of Defs" (length ds) (length ds')
+  forM_ (zip3 ds ds' [1..]) $ \(d, d', l) ->
+    assertEqual ("For Def " ++ (show l) ++ ":") d d'
+
+
 testParserBasic :: Assertion
-testParserBasic = return ()
+testParserBasic = do
+  case Funk.Parser.parse "<testdata>" input of
+    Left e -> assertFailure (show e)
+    Right (Module defs) -> checkDefs expectedOutput defs
+  where
+    input = "foo a b = add a b 3\n\
+            \bar = foo 1 2\n\
+            \baz = foo bar bar\n"
+    expectedOutput = [
+      Def (Name "foo") [Name "a", Name "b"]
+        (Call (Name "add")
+           [VarRef (Name "a"), VarRef (Name "b"), FloatLiteral 3]),
+      Def (Name "bar") []
+        (Call (Name "foo")
+          [FloatLiteral 1, FloatLiteral 3]),
+      Def (Name "baz") []
+        (Call (Name "foo")
+           [VarRef (Name "bar"), VarRef (Name "bar")]) ]
+

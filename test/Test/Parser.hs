@@ -27,7 +27,8 @@ import Control.Monad (forM_)
 
 tests :: Test.Framework.Test
 tests = testGroup "Parser Tests"  [
-          testCase "Basic" testParserBasic
+          testCase "Basic" testParserBasic,
+          testCase "Prefix Ops" testPrefixOp
         ]
 
 checkDefs :: [Def] -> [Def] -> Assertion
@@ -52,8 +53,23 @@ testParserBasic = do
            [VarRef (Name "a"), VarRef (Name "b"), FloatLiteral 3]),
       Def (Name "bar") []
         (Call (Name "foo")
-          [FloatLiteral 1, FloatLiteral 3]),
+          [FloatLiteral 1, FloatLiteral 2]),
       Def (Name "baz") []
         (Call (Name "foo")
            [VarRef (Name "bar"), VarRef (Name "bar")]) ]
 
+testPrefixOp :: Assertion
+testPrefixOp = do
+  case parse "<testdata>" input of
+    Left e -> assertFailure (show e)
+    Right (Module defs) -> checkDefs expectedOutput defs
+  where
+    input = "foo a b = (+) a b\n\
+            \bar = (<$>) 1 2\n"
+    expectedOutput = [
+      Def (Name "foo") [Name "a", Name "b"]
+        (Call (Name "+")
+           [VarRef (Name "a"), VarRef (Name "b")]),
+      Def (Name "bar") []
+        (Call (Name "<$>")
+          [FloatLiteral 1, FloatLiteral 2]) ]

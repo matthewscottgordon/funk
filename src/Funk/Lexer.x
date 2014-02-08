@@ -33,9 +33,8 @@ $alpha_upper = [A-Z]
 $alpha_lower = [a-z]
 $id_char     = [a-zA-Z0-9_]
 $op_char     = [\~\!\@\$\%\^\&\*\+\-\=\:\;\<\>\?\/\|]
--- $op_char     = [\=]
-$nl          = [\n\r]
-$white_no_nl = $white # $nl
+$eol         = \n
+$white_no_nl = $white # $eol
 
 
 tokens :-
@@ -47,7 +46,7 @@ tokens :-
   $op_char+ 			   { mkToken mkOp }
   "("                      { mkToken (\_ -> OpenParen) }
   ")"                      { mkToken (\_ -> CloseParen) }
-  $nl                      { mkToken (\_ -> Eol) }
+  $eol                     { mkToken (\_ -> Eol) }
   .                        { mkToken BadToken }{
 
 data Posn = Posn Int Int Int

@@ -16,4 +16,9 @@ limitations under the License.
 import Funk.Parser
 
 main :: IO ()
-main = return ()
+main = do
+  input <- getContents
+  case Funk.Parser.parse "<stdin>" input of
+    Left e -> putStrLn $ show e
+    Right r -> putStrLn $ show r
+  return ()

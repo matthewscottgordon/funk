@@ -20,48 +20,111 @@ module Funk.Parser
 import Funk.AST
 import qualified Funk.Lexer as Lex
 
-import Text.Parsec.String (Parser)
-import Text.Parsec ((<|>),many)
+import qualified Text.Parsec as Parsec
+import qualified Text.Parsec.String
+import Text.Parsec.Pos (newPos)
+import Text.Parsec ((<|>), many, ParseError, eof)
 
 import Control.Applicative ((<$>))
 
+type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
+--token :: (tok -> String) -> (tok -> SourcePos) -> (tok -> Maybe a)
+--         -> GenParser tok st a
+token :: (Lex.Token -> Maybe a) -> Parser a
+token test
+  = Parsec.token showTok posFromTok testTok
+  where
+    showTok (_, t) = show t
+    posFromTok ((Lex.Posn _ l c), _) = newPos "TODO" l c
+    testTok (_, t) = test t
 
-parse :: Parser Module
-parse = module'
+floatLiteral :: Parser Double
+floatLiteral = token $ \tok -> case tok of
+  Lex.FloatLiteral v -> Just v
+  _                  -> Nothing
+
+defOp :: Parser ()
+defOp = token $ \tok -> case tok of
+  Lex.DefOp -> Just ()
+  _         -> Nothing
+
+name :: Parser String
+name = token $ \tok -> case tok of
+  Lex.Name s -> Just s
+  _          -> Nothing
+
+op :: Parser String
+op = token $ \tok -> case tok of
+  Lex.OpName  s -> Just s
+  _             -> Nothing
+
+openParen :: Parser ()
+openParen = token $ \tok -> case tok of
+  Lex.OpenParen -> Just ()
+  _             -> Nothing
+
+closeParen :: Parser ()
+closeParen = token $ \tok -> case tok of
+  Lex.CloseParen -> Just ()
+  _              -> Nothing
+
+eol :: Parser ()
+eol = token $ \tok -> case tok of
+  Lex.Eol   -> Just ()
+  _         -> Nothing
+
+inParens :: Parser a -> Parser a
+inParens p = do
+  openParen
+  v <- p
+  closeParen
+  return v
+
+parse :: String -> String -> Either ParseError Module
+parse filename input = Parsec.parse module' filename (Lex.lex input)
 
 module' :: Parser Module
-module' = Module <$> many defs
+module' = do
+  r <- Module <$> many defs
+  eof
+  return r
 
 
+-- Def     -> name ArgList defOp Expr
+-- ArgList -> name ArgList
+-- ArgList -> 
 defs :: Parser Def
 defs = do
-  name <- Name <$> Lex.identifier
-  params <- fmap Name <$> (many Lex.identifier)
-  Lex.defOp
+  n <- Name <$> name
+  params <- fmap Name <$> (many name)
+  defOp
   e <- expr
-  return (Def name params e)
-  
-  
+  eol
+  return (Def n params e)
+
+
 expr :: Parser Expr
-expr = Lex.parens expr <|> literal <|> opCall <|> funcCall
+expr = funcCall           -- Expr -> name Expr
+       <|> inParens expr  -- Expr -> "(" Expr ")"
+       <|> literal        -- Expr -> floatLiteral
+       <|> varRef         -- Expr -> name
 
 
+-- Expr -> name
+varRef :: Parser Expr
+varRef = do
+  n <- Name <$> name
+  return (VarRef n)
+
+
+-- Expr -> floatLiteral
 literal :: Parser Expr
-literal = FloatLiteral <$> Lex.float
+literal = FloatLiteral <$> floatLiteral
 
 
-opCall :: Parser Expr
-opCall = do
-  name <- Name <$> Lex.op
-  args <- many expr
-  return (Call name args)
-
-
+-- Expr -> name Expr
 funcCall :: Parser Expr
 funcCall = do
-  name <- Name <$> Lex.identifier
+  n <- Name <$> (name <|> inParens op)
   args <-  many expr
-  return (Call name args)
-
-  
-  
+  return (Call n args)

@@ -16,6 +16,7 @@ limitations under the License.
 module Funk.AST where
 
 data Module = Module [Def]
+            deriving Show
 
 data Name = Name String
           deriving (Eq, Show)
@@ -25,5 +26,6 @@ data Def = Def Name [Name] Expr
 
 data Expr = FloatLiteral Double
           | Call Name [Expr]
+          | VarRef Name
           deriving (Eq, Show)
                    

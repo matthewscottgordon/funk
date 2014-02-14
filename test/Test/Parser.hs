@@ -29,7 +29,8 @@ tests :: Test.Framework.Test
 tests = testGroup "Parser Tests"  [
           testCase "Basic" testParserBasic,
           testCase "Prefix Ops" testPrefixOp,
-          testCase "Foreign Functions" testForeignFunctions
+          testCase "Foreign Functions" testForeignFunctions,
+          testCase "More Functions" testMixedForeignAndRegularFunc
         ]
 
 checkList :: (Show a, Eq a) => String -> [a] -> [a] -> Assertion
@@ -84,5 +85,35 @@ testForeignFunctions = parseAndCheck input (Module [] expectedFDefs)
     input = "foreign sin theta = sin\n\
             \foreign arcTan2 y x = atan2\n"
     expectedFDefs = [
+      ForeignDef (Name "sin") [Name "theta"] (Name "sin"),
+      ForeignDef (Name "arcTan2") [Name "y", Name "x"] (Name "atan2")]
+
+testMixedForeignAndRegularFunc :: Assertion
+testMixedForeignAndRegularFunc = parseAndCheck input (Module defs fdefs)
+  where
+    input = "foo a b = add a b 3\n\
+            \bar = foo 1 2\n\
+            \baz = foo bar bar\n\
+            \foreign sin theta = sin\n\
+            \foreign arcTan2 y x = atan2\n\
+            \foo a b = (+) a b\n\
+            \bar = (<$>) 1 2\n"
+    defs = [
+      Def (Name "foo") [Name "a", Name "b"]
+        (Call (Name "add")
+           [VarRef (Name "a"), VarRef (Name "b"), FloatLiteral 3]),
+      Def (Name "bar") []
+        (Call (Name "foo")
+          [FloatLiteral 1, FloatLiteral 2]),
+      Def (Name "baz") []
+        (Call (Name "foo")
+           [VarRef (Name "bar"), VarRef (Name "bar")]),
+      Def (Name "foo") [Name "a", Name "b"]
+        (Call (Name "+")
+           [VarRef (Name "a"), VarRef (Name "b")]),
+      Def (Name "bar") []
+        (Call (Name "<$>")
+          [FloatLiteral 1, FloatLiteral 2]) ]
+    fdefs = [
       ForeignDef (Name "sin") [Name "theta"] (Name "sin"),
       ForeignDef (Name "arcTan2") [Name "y", Name "x"] (Name "atan2")]

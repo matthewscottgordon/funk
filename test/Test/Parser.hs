@@ -28,29 +28,33 @@ import Control.Monad (forM_)
 tests :: Test.Framework.Test
 tests = testGroup "Parser Tests"  [
           testCase "Basic" testParserBasic,
-          testCase "Prefix Ops" testPrefixOp
+          testCase "Prefix Ops" testPrefixOp,
+          testCase "Foreign Functions" testForeignFunctions
         ]
 
-checkDefs :: [Def] -> [Def] -> Assertion
-checkDefs ds ds' = do
-  assertEqual "Wrong number of Defs" (length ds) (length ds')
+checkList :: (Show a, Eq a) => String -> [a] -> [a] -> Assertion
+checkList s ds ds' = do
+  assertEqual ("Wrong number of " ++ s) (length ds) (length ds')
   forM_ (zip3 ds ds' [1..]) $ \(d, d', l) ->
-    assertEqual ("For Def " ++ (show l) ++ ":") d d'
+    assertEqual ("For " ++ s ++ " "++ (show l) ++ ":") d d'
 
-parseAndCheck :: String -> [Def] -> Assertion
-parseAndCheck input expectedOutput = do
+
+parseAndCheck :: String -> Module -> Assertion
+parseAndCheck input (Module expectedDefs expectedFDefs) = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
-    Right (Module defs []) -> checkDefs expectedOutput defs
+    Right (Module defs fdefs) -> do
+      checkList "Def" expectedDefs defs
+      checkList "ForeignDef" expectedFDefs fdefs
 
     
 testParserBasic :: Assertion
-testParserBasic = parseAndCheck input expectedOutput
+testParserBasic = parseAndCheck input (Module expectedDefs [])
   where
     input = "foo a b = add a b 3\n\
             \bar = foo 1 2\n\
             \baz = foo bar bar\n"
-    expectedOutput = [
+    expectedDefs = [
       Def (Name "foo") [Name "a", Name "b"]
         (Call (Name "add")
            [VarRef (Name "a"), VarRef (Name "b"), FloatLiteral 3]),
@@ -62,14 +66,23 @@ testParserBasic = parseAndCheck input expectedOutput
            [VarRef (Name "bar"), VarRef (Name "bar")]) ]
 
 testPrefixOp :: Assertion
-testPrefixOp = parseAndCheck input expectedOutput
+testPrefixOp = parseAndCheck input (Module expectedDefs [])
   where
     input = "foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
-    expectedOutput = [
+    expectedDefs = [
       Def (Name "foo") [Name "a", Name "b"]
         (Call (Name "+")
            [VarRef (Name "a"), VarRef (Name "b")]),
       Def (Name "bar") []
         (Call (Name "<$>")
           [FloatLiteral 1, FloatLiteral 2]) ]
+
+testForeignFunctions :: Assertion
+testForeignFunctions = parseAndCheck input (Module [] expectedFDefs)
+  where
+    input = "foreign sin theta = sin\n\
+            \foreign arcTan2 y x = atan2\n"
+    expectedFDefs = [
+      ForeignDef (Name "sin") [Name "theta"] (Name "sin"),
+      ForeignDef (Name "arcTan2") [Name "y", Name "x"] (Name "atan2")]

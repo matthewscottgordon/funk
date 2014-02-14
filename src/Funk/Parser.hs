@@ -112,6 +112,7 @@ foreignDef = do
   params <- argList
   defOp
   n' <- Name <$> name
+  eol
   return (ForeignDef n params n')
   
 

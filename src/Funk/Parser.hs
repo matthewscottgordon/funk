@@ -23,9 +23,10 @@ import qualified Funk.Lexer as Lex
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.String
 import Text.Parsec.Pos (newPos)
-import Text.Parsec ((<|>), many, ParseError, eof)
+import Text.Parsec ((<|>), many, manyTill, ParseError, eof, parsecMap)
 
 import Control.Applicative ((<$>))
+import Data.Either (partitionEithers)
 
 type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
 --token :: (tok -> String) -> (tok -> SourcePos) -> (tok -> Maybe a)
@@ -73,6 +74,11 @@ eol = token $ \tok -> case tok of
   Lex.Eol   -> Just ()
   _         -> Nothing
 
+keywordForeign :: Parser ()
+keywordForeign = token $ \tok -> case tok of
+  Lex.KeywordForeign -> Just ()
+  _                  -> Nothing
+
 inParens :: Parser a -> Parser a
 inParens p = do
   openParen
@@ -84,19 +90,36 @@ parse :: String -> String -> Either ParseError Module
 parse filename input = Parsec.parse module' filename (Lex.lex input)
 
 module' :: Parser Module
-module' = do
-  r <- Module <$> many defs
-  eof
-  return r
+module' = ((uncurry Module) . partitionEithers) <$> manyTill def' eof
 
 
--- Def     -> name ArgList defOp Expr
+-- Def' -> Def | ForeignDef
+def' :: Parser (Either Def ForeignDef)
+def' = (parsecMap Right foreignDef) <|> (parsecMap Left def)
+
+
 -- ArgList -> name ArgList
 -- ArgList -> 
-defs :: Parser Def
-defs = do
+argList :: Parser [Name]
+argList = fmap Name <$> (many name)
+
+
+-- ForeignDef -> "keywordForeign name ArgList defOp Expr
+foreignDef :: Parser ForeignDef
+foreignDef = do
+  keywordForeign
   n <- Name <$> name
-  params <- fmap Name <$> (many name)
+  params <- argList
+  defOp
+  n' <- Name <$> name
+  return (ForeignDef n params n')
+  
+
+-- Def -> name ArgList defOp Expr
+def :: Parser Def
+def = do
+  n <- Name <$> name
+  params <- argList
   defOp
   e <- expr
   eol

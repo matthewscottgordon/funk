@@ -41,7 +41,7 @@ parseAndCheck :: String -> [Def] -> Assertion
 parseAndCheck input expectedOutput = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
-    Right (Module defs) -> checkDefs expectedOutput defs
+    Right (Module defs []) -> checkDefs expectedOutput defs
 
     
 testParserBasic :: Assertion

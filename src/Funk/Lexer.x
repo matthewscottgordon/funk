@@ -40,6 +40,7 @@ $white_no_nl = $white # $eol
 tokens :-
 
   $white_no_nl+            ;
+  "foreign"                { mkToken (\_ -> KeywordForeign) }
   $digit+ ("." $digit+)?   { mkToken (\s -> FloatLiteral (read s)) }
   $alpha_lower $id_char*   { mkToken Name }
   "="                      { mkToken (\_ -> DefOp) }
@@ -53,6 +54,7 @@ data Posn = Posn Int Int Int
           deriving (Show)
 
 data Token = FloatLiteral Double
+           | KeywordForeign
            | DefOp
            | Name String
            | OpName String

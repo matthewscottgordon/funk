@@ -30,7 +30,8 @@ tests = testGroup "Parser Tests"  [
           testCase "Basic" testParserBasic,
           testCase "Prefix Ops" testPrefixOp,
           testCase "Foreign Functions" testForeignFunctions,
-          testCase "More Functions" testMixedForeignAndRegularFunc
+          testCase "More Functions" testMixedForeignAndRegularFunc,
+          testCase "Basic Ops" testOpsBasic
         ]
 
 checkList :: (Show a, Eq a) => String -> [a] -> [a] -> Assertion
@@ -117,3 +118,21 @@ testMixedForeignAndRegularFunc = parseAndCheck input (Module defs fdefs)
     fdefs = [
       ForeignDef (Name "sin") [Name "theta"] (Name "sin"),
       ForeignDef (Name "arcTan2") [Name "y", Name "x"] (Name "atan2")]
+
+testOpsBasic :: Assertion
+testOpsBasic = parseAndCheck input (Module defs [])
+  where
+    input = "bind a b = a >>= b\n\
+            \equal3 one two three = one == two == three\n\
+            \foo qw er = er + 1 * 2 / qw - 1234.56\n"
+    defs = [
+      Def (Name "bind") [Name "a", Name "b"]
+        (Op (Name ">>=") [VarRef (Name "a"), VarRef (Name "b")]),
+      Def (Name "equal3") [Name "one", Name "two", Name "three"]
+        (Op (Name "==") [Op (Name "==")
+             [VarRef (Name "one"), VarRef (Name "two")],
+                VarRef (Name "three")]),
+      Def (Name "foo") [Name "qw", Name "er"]
+        (Op (Name "-") [Op (Name "/") [Op (Name "*") [ Op (Name "+")
+           [VarRef (Name "er"), FloatLiteral 1], FloatLiteral 2],
+             VarRef (Name "qw")], FloatLiteral 1234.56])]

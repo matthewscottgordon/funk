@@ -23,7 +23,8 @@ import qualified Funk.Lexer as Lex
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.String
 import Text.Parsec.Pos (newPos)
-import Text.Parsec ((<|>), many, manyTill, ParseError, eof, parsecMap)
+import Text.Parsec ((<|>), many, manyTill, many1, ParseError,
+                    eof, parsecMap)
 
 import Control.Applicative ((<$>))
 import Data.Either (partitionEithers)
@@ -98,60 +99,61 @@ def' :: Parser (Either Def ForeignDef)
 def' = (parsecMap Right foreignDef) <|> (parsecMap Left def)
 
 
--- ArgList -> name ArgList
--- ArgList -> 
-argList :: Parser [Name]
-argList = fmap Name <$> (many name)
+-- ParamList -> name ParamList
+-- ParamList -> 
+paramList :: Parser [Name]
+paramList = fmap Name <$> (many name)
 
 
--- ForeignDef -> "keywordForeign name ArgList defOp Expr
+-- ForeignDef -> "keywordForeign name ParamList defOp Expr
 foreignDef :: Parser ForeignDef
 foreignDef = do
   keywordForeign
   n <- Name <$> name
-  params <- argList
+  params <- paramList
   defOp
   n' <- Name <$> name
   eol
   return (ForeignDef n params n')
   
 
--- Def -> name ArgList defOp Expr
+-- Def -> name ParamList defOp Expr
 def :: Parser Def
 def = do
   n <- Name <$> name
-  params <- argList
+  params <- paramList
   defOp
   e <- expr
   eol
   return (Def n params e)
 
+--data ExprInitial = NameInit Name | FloatLiteralInit Lex.FloatLiteral
+
 expr :: Parser Expr
-expr = funcCall         -- Expr -> name Expr
-       <|> expr'       -- Expr -> Expr'
+expr = nameExpr <|> exprExpr
 
-expr' :: Parser Expr
-expr' = inParens expr  -- Expr' -> "(" Expr ")"
-       <|> literal     -- Expr' -> floatLiteral
-       <|> varRef      -- Expr' -> name
+nameExpr :: Parser Expr
+nameExpr = do
+  n <- (Name <$> name)
+  (funcExpr n <|> opExpr (VarRef n))
 
+exprExpr :: Parser Expr
+exprExpr = do
+  e <- exprExpr'
+  (opExpr e <|> return e)
 
--- Expr -> name
-varRef :: Parser Expr
-varRef = do
-  n <- Name <$> name
-  return (VarRef n)
+exprExpr' :: Parser Expr
+exprExpr' = (FloatLiteral <$> floatLiteral) <|> inParens expr
 
+opExpr :: Expr -> Parser Expr
+opExpr initial = do
+  opName <- Name <$> op
+  args <- (initial :) <$> (many1 argExpr)
+  let e = Op opName args
+  opExpr e <|> return e
 
--- Expr -> floatLiteral
-literal :: Parser Expr
-literal = FloatLiteral <$> floatLiteral
+argExpr :: Parser Expr
+argExpr = ((VarRef . Name ) <$> name) <|> exprExpr'
 
-
--- Expr -> name { Expr' }
--- Expr -> "(" op ")" { Expr' }
-funcCall :: Parser Expr
-funcCall = do
-  n <- Name <$> (name <|> inParens op)
-  args <-  many expr'
-  return (Call n args)
+funcExpr :: Name -> Parser Expr
+funcExpr n = (Call n) <$> many1 argExpr

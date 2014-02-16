@@ -26,6 +26,7 @@ data Def = Def Name [Name] Expr
 
 data Expr = FloatLiteral Double
           | Call Name [Expr]
+          | Op Name [Expr]
           | VarRef Name
           deriving (Eq, Show)
 

@@ -36,15 +36,18 @@ $op_char     = [\~\!\@\$\%\^\&\*\+\-\=\:\;\<\>\?\/\|]
 $eol         = \n
 $white_no_nl = $white # $eol
 
+@name = $alpha_lower $id_char*
 
 tokens :-
 
   $white_no_nl+            ;
   "foreign"                { mkToken (\_ -> KeywordForeign) }
   $digit+ ("." $digit+)?   { mkToken (\s -> FloatLiteral (read s)) }
-  $alpha_lower $id_char*   { mkToken Name }
+  @name                    { mkToken Name }
   "="                      { mkToken (\_ -> DefOp) }
-  $op_char+ 			   { mkToken mkOp }
+  "(" $op_char+ ")"        { mkToken (Name . init . tail) }
+  $op_char+ 			   { mkToken OpName }
+  "`" @name "`"            { mkToken (OpName . init . tail) }
   "("                      { mkToken (\_ -> OpenParen) }
   ")"                      { mkToken (\_ -> CloseParen) }
   $eol                     { mkToken (\_ -> Eol) }
@@ -69,11 +72,6 @@ mkToken f (AlexPn a l c) s = ((Posn a l c), f s)
 
 mkToken' :: String -> (String -> Token) -> AlexPosn -> String -> (Posn, Token)
 mkToken' n f (AlexPn a l c) s = ((Posn a l c), f (trace (n ++ "(" ++ s ++ ")") s))
-
-mkOp :: String -> Token
-mkOp s 
-  | s == "="  = DefOp
-  | otherwise = OpName s
 
 lex :: String -> [(Posn, Token)]
 lex = alexScanTokens

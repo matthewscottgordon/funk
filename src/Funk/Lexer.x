@@ -42,20 +42,24 @@ $white_no_nl = $white # $eol
 
 tokens :-
 
-  $white_no_nl+            ;
-  "foreign"                { mkToken (\_ -> KeywordForeign) }
-  $digit+ ("." $digit+)?   { mkToken (\s -> FloatLiteral (read s)) }
-  @identifier              { mkToken Id }
-  "="                      { mkToken (\_ -> DefOp) }
-  "(" $op_char+ ")"        { mkToken (Id . init . tail) }
-  @op1                     { mkToken Op1 }
-  @op2                     { mkToken Op2 }
-  $op_char+ 			   { mkToken Op }
-  "`" @identifier "`"      { mkToken (Op . init . tail) }
-  "("                      { mkToken (\_ -> OpenParen) }
-  ")"                      { mkToken (\_ -> CloseParen) }
-  $eol                     { mkToken (\_ -> Eol) }
-  .                        { mkToken BadToken }{
+  $white_no_nl+                   ;
+  "foreign"                       {mkToken (\_ -> KeywordForeign)}
+  $digit+ ("." $digit+)?          { mkToken (\s -> FloatLiteral (read s)) }
+  @identifier                     { mkToken Id }
+  "="                             { mkToken (\_ -> DefOp) }
+  "(" $op_char+ ")"               { mkToken (Id . init . tail) }
+  @op1                            { mkToken Op1 }
+  @op2                            { mkToken Op2 }
+  $op_char+                       { mkToken Op }
+  "`" @identifier "`"             { mkToken (Op . init . tail) }
+  "("                             { mkToken (\_ -> OpenParen) }
+  ")"                             { mkToken (\_ -> CloseParen) }
+  $eol                            { mkToken (\_ -> Eol) }
+  $digit+ @identifier             { mkToken BadToken }
+  "_" @identifier                 { mkToken BadToken }
+  .                               { mkToken BadToken }
+
+{
 
 data Posn = Posn Int Int Int
           deriving (Show)

@@ -50,14 +50,24 @@ defOp = token $ \tok -> case tok of
   Lex.DefOp -> Just ()
   _         -> Nothing
 
-name :: Parser String
-name = token $ \tok -> case tok of
-  Lex.Name s -> Just s
+identifier :: Parser String
+identifier = token $ \tok -> case tok of
+  Lex.Id s -> Just s
   _          -> Nothing
 
 op :: Parser String
 op = token $ \tok -> case tok of
-  Lex.OpName  s -> Just s
+  Lex.Op  s -> Just s
+  _             -> Nothing
+
+op1 :: Parser String
+op1 = token $ \tok -> case tok of
+  Lex.Op1  s -> Just s
+  _             -> Nothing
+
+op2 :: Parser String
+op2 = token $ \tok -> case tok of
+  Lex.Op2  s -> Just s
   _             -> Nothing
 
 openParen :: Parser ()
@@ -80,12 +90,6 @@ keywordForeign = token $ \tok -> case tok of
   Lex.KeywordForeign -> Just ()
   _                  -> Nothing
 
-inParens :: Parser a -> Parser a
-inParens p = do
-  openParen
-  v <- p
-  closeParen
-  return v
 
 parse :: String -> String -> Either ParseError Module
 parse filename input = Parsec.parse module' filename (Lex.lex input)
@@ -99,61 +103,146 @@ def' :: Parser (Either Def ForeignDef)
 def' = (parsecMap Right foreignDef) <|> (parsecMap Left def)
 
 
--- ParamList -> name ParamList
+-- ParamList -> identifier ParamList
 -- ParamList -> 
 paramList :: Parser [Name]
-paramList = fmap Name <$> (many name)
+paramList = fmap Name <$> (many identifier)
 
 
--- ForeignDef -> "keywordForeign name ParamList defOp Expr
+-- ForeignDef -> "keywordForeign identifier ParamList defOp Expr
 foreignDef :: Parser ForeignDef
 foreignDef = do
   keywordForeign
-  n <- Name <$> name
+  n <- Name <$> identifier
   params <- paramList
   defOp
-  n' <- Name <$> name
+  n' <- Name <$> identifier
   eol
   return (ForeignDef n params n')
   
 
--- Def -> name ParamList defOp Expr
+-- Def -> identifier ParamList defOp Expr
 def :: Parser Def
 def = do
-  n <- Name <$> name
+  n <- Name <$> identifier
   params <- paramList
   defOp
   e <- expr
   eol
   return (Def n params e)
 
---data ExprInitial = NameInit Name | FloatLiteralInit Lex.FloatLiteral
+
+-----------------------------------------------------------------
+-- Expression parsing
+-----------------------------------------------------------------
+--
+-- Ambiguous but easy-to-understand grammar (Basically EBNF):
+--
+--   expr = opExpr3
+-- 
+--   opExpr3 = opExpr3 OP3 opExpr2 | opExpr2
+-- 
+--   opExpr2 = opExpr2 OP2 opExpr1 | opExpr1
+-- 
+--   opExpr1 = opExpr1 OP1 atomicExpr | atomicExpr
+-- 
+--   funcExpr = ID opExpr3 {opExpr3} | atomicExpr
+-- 
+--   atomicExpr = ID | LITERAL | "(" expr ")"
+--
+-----------------------------------------------------------------
+--
+-- Unambigious LR(1) grammar (reduction rules):
+--
+--   expr -> opExpr3
+--   
+--   opExpr3 -> opExpr2 opExpr3'
+--   opExpr3' -> OP3 opEcpr2 opExpr3'
+--   opExpr3' ->
+--   
+--   opExpr2 -> opExpr1 opExpr2'
+--   opExpr2' -> OP2 opExpr1 opExpr2'
+--   opExpr2' ->
+--   
+--   opExpr1 -> funcExpr opExpr1'
+--   opExpr1' -> OP1 atomicExpr opExpr1'
+--   opExpr1' ->
+--   
+--   funcExpr -> ID idExpr
+--   funcExpr -> atomicExpr
+--
+--   idExpr -> funcCall
+--   idExpr ->
+--
+--   funcCall -> argExpr funcCall
+--   funcCall ->
+--
+--   argExpr -> ID
+--   argExpr -> atomicExpr
+--   
+--   atomicExpr -> LITERAL | "(" expr ")"
+--
+-----------------------------------------------------------------
 
 expr :: Parser Expr
-expr = nameExpr <|> exprExpr
+expr = opExpr3
 
-nameExpr :: Parser Expr
-nameExpr = do
-  n <- (Name <$> name)
-  (funcExpr n <|> opExpr (VarRef n))
+opExpr3 :: Parser Expr
+opExpr3 = do
+  e <- opExpr2
+  opExpr3' e <|> return e
 
-exprExpr :: Parser Expr
-exprExpr = do
-  e <- exprExpr'
-  (opExpr e <|> return e)
+opExpr3' :: Expr -> Parser Expr
+opExpr3' left = do
+  n <- Name <$> op
+  right <- opExpr2
+  let e = Op n left right
+  opExpr3' e <|> return e
+  
+opExpr2 :: Parser Expr
+opExpr2 = do
+  e <- opExpr1
+  opExpr2' e <|> return e
 
-exprExpr' :: Parser Expr
-exprExpr' = (FloatLiteral <$> floatLiteral) <|> inParens expr
+opExpr2' :: Expr -> Parser Expr
+opExpr2' left = do
+  n <- Name <$> op2
+  right <- opExpr1
+  let e = Op n left right
+  opExpr2' e <|> return e
 
-opExpr :: Expr -> Parser Expr
-opExpr initial = do
-  opName <- Name <$> op
-  args <- (initial :) <$> (many1 argExpr)
-  let e = Op opName args
-  opExpr e <|> return e
+opExpr1 :: Parser Expr
+opExpr1 = do
+  e <- funcExpr
+  opExpr1' e <|> return e
+
+opExpr1' :: Expr -> Parser Expr
+opExpr1' left = do
+  n <- Name <$> op1
+  right <- funcExpr
+  let e = Op n left right
+  opExpr1' e <|> return e
+
+funcExpr :: Parser Expr
+funcExpr = idExpr <|> atomicExpr
+
+idExpr :: Parser Expr
+idExpr = do
+  n <- Name <$> identifier
+  funcCall n <|> return (VarRef n)
+
+funcCall :: Name -> Parser Expr
+funcCall n = Call n <$> many1 argExpr
 
 argExpr :: Parser Expr
-argExpr = ((VarRef . Name ) <$> name) <|> exprExpr'
+argExpr = ((VarRef . Name) <$> identifier) <|> atomicExpr
 
-funcExpr :: Name -> Parser Expr
-funcExpr n = (Call n) <$> many1 argExpr
+atomicExpr :: Parser Expr
+atomicExpr = parenExpr <|> (FloatLiteral <$> floatLiteral)
+
+parenExpr :: Parser Expr
+parenExpr = do
+  openParen
+  r <- expr
+  closeParen
+  return r

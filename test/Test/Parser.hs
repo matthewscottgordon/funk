@@ -31,7 +31,8 @@ tests = testGroup "Parser Tests"  [
           testCase "Prefix Ops" testPrefixOp,
           testCase "Foreign Functions" testForeignFunctions,
           testCase "More Functions" testMixedForeignAndRegularFunc,
-          testCase "Basic Ops" testOpsBasic
+          testCase "Basic Ops" testOpsBasic,
+          testCase "Combined Ops and Functions" testOpsAndFunctions
         ]
 
 checkList :: (Show a, Eq a) => String -> [a] -> [a] -> Assertion
@@ -127,12 +128,37 @@ testOpsBasic = parseAndCheck input (Module defs [])
             \foo qw er = er + 1 * 2 / qw - 1234.56\n"
     defs = [
       Def (Name "bind") [Name "a", Name "b"]
-        (Op (Name ">>=") [VarRef (Name "a"), VarRef (Name "b")]),
+        (Op (Name ">>=")
+          (VarRef (Name "a"))
+          (VarRef (Name "b"))),
       Def (Name "equal3") [Name "one", Name "two", Name "three"]
-        (Op (Name "==") [Op (Name "==")
-             [VarRef (Name "one"), VarRef (Name "two")],
-                VarRef (Name "three")]),
+        (Op (Name "==")
+          (Op (Name "==")
+             (VarRef (Name "one"))
+             (VarRef (Name "two")))
+          (VarRef (Name "three"))),
       Def (Name "foo") [Name "qw", Name "er"]
-        (Op (Name "-") [Op (Name "/") [Op (Name "*") [ Op (Name "+")
-           [VarRef (Name "er"), FloatLiteral 1], FloatLiteral 2],
-             VarRef (Name "qw")], FloatLiteral 1234.56])]
+        (Op (Name "-")
+          (Op (Name "+")
+            (VarRef (Name "er"))
+            (Op (Name "/")
+              (Op (Name "*")
+                (FloatLiteral 1)
+                (FloatLiteral 2))
+              (VarRef (Name "qw"))))
+          (FloatLiteral 1234.56))]
+
+
+testOpsAndFunctions :: Assertion
+testOpsAndFunctions = parseAndCheck input (Module defs [])
+  where
+    input = "f = g a * b\n\
+            \f' = g' a (*) b\n"
+    defs = [
+      Def (Name "f") []
+        (Op (Name "*")
+          (Call (Name "g") [VarRef (Name "a")])
+          (VarRef (Name "b"))),
+      Def (Name "f'") [] (Call (Name "g'")
+        [VarRef (Name "a"), VarRef (Name "*"), VarRef (Name "b")])]
+        

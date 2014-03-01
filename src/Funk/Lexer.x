@@ -31,23 +31,27 @@ $digit       = [0-9]
 $alpha       = [a-zA-Z]
 $alpha_upper = [A-Z]
 $alpha_lower = [a-z]
-$id_char     = [a-zA-Z0-9_]
+$id_char     = [a-zA-Z0-9_']
 $op_char     = [\~\!\@\$\%\^\&\*\+\-\=\:\;\<\>\?\/\|]
 $eol         = \n
 $white_no_nl = $white # $eol
 
-@name = $alpha_lower $id_char*
+@identifier = $alpha_lower $id_char*
+@op1 = [\*\/]
+@op2 = [\+\-]
 
 tokens :-
 
   $white_no_nl+            ;
   "foreign"                { mkToken (\_ -> KeywordForeign) }
   $digit+ ("." $digit+)?   { mkToken (\s -> FloatLiteral (read s)) }
-  @name                    { mkToken Name }
+  @identifier              { mkToken Id }
   "="                      { mkToken (\_ -> DefOp) }
-  "(" $op_char+ ")"        { mkToken (Name . init . tail) }
-  $op_char+ 			   { mkToken OpName }
-  "`" @name "`"            { mkToken (OpName . init . tail) }
+  "(" $op_char+ ")"        { mkToken (Id . init . tail) }
+  @op1                     { mkToken Op1 }
+  @op2                     { mkToken Op2 }
+  $op_char+ 			   { mkToken Op }
+  "`" @identifier "`"      { mkToken (Op . init . tail) }
   "("                      { mkToken (\_ -> OpenParen) }
   ")"                      { mkToken (\_ -> CloseParen) }
   $eol                     { mkToken (\_ -> Eol) }
@@ -59,8 +63,10 @@ data Posn = Posn Int Int Int
 data Token = FloatLiteral Double
            | KeywordForeign
            | DefOp
-           | Name String
-           | OpName String
+           | Id String
+           | Op String
+           | Op1 String
+           | Op2 String
            | OpenParen
            | CloseParen
            | Eol

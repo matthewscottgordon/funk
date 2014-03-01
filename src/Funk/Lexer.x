@@ -71,7 +71,7 @@ data Token = FloatLiteral Double
            | CloseParen
            | Eol
            | BadToken String
-           deriving (Show)
+           deriving (Show, Eq)
 
 mkToken :: (String -> Token) -> AlexPosn -> String -> (Posn, Token)
 mkToken f (AlexPn a l c) s = ((Posn a l c), f s)

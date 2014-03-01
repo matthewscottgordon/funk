@@ -15,10 +15,11 @@ limitations under the License.
 
 import Test.Framework (defaultMain, Test)
 
+import qualified Test.Lexer
 import qualified Test.Parser
 
 tests :: [Test]
-tests = [Test.Parser.tests]
+tests = [Test.Lexer.tests, Test.Parser.tests]
 
 main :: IO ()
 main = defaultMain tests

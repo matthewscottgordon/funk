@@ -42,7 +42,7 @@ checkList s ds ds' = do
     assertEqual ("For " ++ s ++ " "++ (show l) ++ ":") d d'
 
 
-parseAndCheck :: String -> Module -> Assertion
+parseAndCheck :: String -> (Module RawName) -> Assertion
 parseAndCheck input (Module expectedDefs expectedFDefs) = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
@@ -58,15 +58,15 @@ testParserBasic = parseAndCheck input (Module expectedDefs [])
             \bar = foo 1 2\n\
             \baz = foo bar bar\n"
     expectedDefs = [
-      Def (Name "foo") [Name "a", Name "b"]
-        (Call (Name "add")
-           [VarRef (Name "a"), VarRef (Name "b"), FloatLiteral 3]),
-      Def (Name "bar") []
-        (Call (Name "foo")
-          [FloatLiteral 1, FloatLiteral 2]),
-      Def (Name "baz") []
-        (Call (Name "foo")
-           [VarRef (Name "bar"), VarRef (Name "bar")]) ]
+      Def (RawName "foo") [RawName "a", RawName "b"]
+       (Call (RawName "add")
+        [VarRef (RawName "a"), VarRef (RawName "b"), FloatLiteral 3]),
+      Def (RawName "bar") []
+       (Call (RawName "foo")
+        [FloatLiteral 1, FloatLiteral 2]),
+      Def (RawName "baz") []
+       (Call (RawName "foo")
+        [VarRef (RawName "bar"), VarRef (RawName "bar")]) ]
 
 testPrefixOp :: Assertion
 testPrefixOp = parseAndCheck input (Module expectedDefs [])
@@ -74,11 +74,11 @@ testPrefixOp = parseAndCheck input (Module expectedDefs [])
     input = "foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
     expectedDefs = [
-      Def (Name "foo") [Name "a", Name "b"]
-        (Call (Name "+")
-           [VarRef (Name "a"), VarRef (Name "b")]),
-      Def (Name "bar") []
-        (Call (Name "<$>")
+      Def (RawName "foo") [RawName "a", RawName "b"]
+        (Call (RawName "+")
+           [VarRef (RawName "a"), VarRef (RawName "b")]),
+      Def (RawName "bar") []
+        (Call (RawName "<$>")
           [FloatLiteral 1, FloatLiteral 2]) ]
 
 testForeignFunctions :: Assertion
@@ -87,8 +87,9 @@ testForeignFunctions = parseAndCheck input (Module [] expectedFDefs)
     input = "foreign sin theta = sin\n\
             \foreign arcTan2 y x = atan2\n"
     expectedFDefs = [
-      ForeignDef (Name "sin") [Name "theta"] (Name "sin"),
-      ForeignDef (Name "arcTan2") [Name "y", Name "x"] (Name "atan2")]
+      ForeignDef (RawName "sin") [RawName "theta"] (RawName "sin"),
+      ForeignDef (RawName "arcTan2") [RawName "y", RawName "x"]
+                 (RawName "atan2")]
 
 testMixedForeignAndRegularFunc :: Assertion
 testMixedForeignAndRegularFunc = parseAndCheck input (Module defs fdefs)
@@ -101,24 +102,25 @@ testMixedForeignAndRegularFunc = parseAndCheck input (Module defs fdefs)
             \foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
     defs = [
-      Def (Name "foo") [Name "a", Name "b"]
-        (Call (Name "add")
-           [VarRef (Name "a"), VarRef (Name "b"), FloatLiteral 3]),
-      Def (Name "bar") []
-        (Call (Name "foo")
-          [FloatLiteral 1, FloatLiteral 2]),
-      Def (Name "baz") []
-        (Call (Name "foo")
-           [VarRef (Name "bar"), VarRef (Name "bar")]),
-      Def (Name "foo") [Name "a", Name "b"]
-        (Call (Name "+")
-           [VarRef (Name "a"), VarRef (Name "b")]),
-      Def (Name "bar") []
-        (Call (Name "<$>")
-          [FloatLiteral 1, FloatLiteral 2]) ]
+      Def (RawName "foo") [RawName "a", RawName "b"]
+       (Call (RawName "add")
+        [VarRef (RawName "a"), VarRef (RawName "b"), FloatLiteral 3]),
+      Def (RawName "bar") []
+       (Call (RawName "foo")
+        [FloatLiteral 1, FloatLiteral 2]),
+      Def (RawName "baz") []
+       (Call (RawName "foo")
+        [VarRef (RawName "bar"), VarRef (RawName "bar")]),
+      Def (RawName "foo") [RawName "a", RawName "b"]
+       (Call (RawName "+")
+        [VarRef (RawName "a"), VarRef (RawName "b")]),
+      Def (RawName "bar") []
+       (Call (RawName "<$>")
+        [FloatLiteral 1, FloatLiteral 2]) ]
     fdefs = [
-      ForeignDef (Name "sin") [Name "theta"] (Name "sin"),
-      ForeignDef (Name "arcTan2") [Name "y", Name "x"] (Name "atan2")]
+      ForeignDef (RawName "sin") [RawName "theta"] (RawName "sin"),
+      ForeignDef (RawName "arcTan2") [RawName "y", RawName "x"]
+                 (RawName "atan2")]
 
 testOpsBasic :: Assertion
 testOpsBasic = parseAndCheck input (Module defs [])
@@ -127,25 +129,26 @@ testOpsBasic = parseAndCheck input (Module defs [])
             \equal3 one two three = one == two == three\n\
             \foo qw er = er + 1 * 2 / qw - 1234.56\n"
     defs = [
-      Def (Name "bind") [Name "a", Name "b"]
-        (Op (Name ">>=")
-          (VarRef (Name "a"))
-          (VarRef (Name "b"))),
-      Def (Name "equal3") [Name "one", Name "two", Name "three"]
-        (Op (Name "==")
-          (Op (Name "==")
-             (VarRef (Name "one"))
-             (VarRef (Name "two")))
-          (VarRef (Name "three"))),
-      Def (Name "foo") [Name "qw", Name "er"]
-        (Op (Name "-")
-          (Op (Name "+")
-            (VarRef (Name "er"))
-            (Op (Name "/")
-              (Op (Name "*")
+      Def (RawName "bind") [RawName "a", RawName "b"]
+        (Op (RawName ">>=")
+          (VarRef (RawName "a"))
+          (VarRef (RawName "b"))),
+      Def (RawName "equal3")
+          [RawName "one", RawName "two", RawName "three"]
+        (Op (RawName "==")
+          (Op (RawName "==")
+             (VarRef (RawName "one"))
+             (VarRef (RawName "two")))
+          (VarRef (RawName "three"))),
+      Def (RawName "foo") [RawName "qw", RawName "er"]
+        (Op (RawName "-")
+          (Op (RawName "+")
+            (VarRef (RawName "er"))
+            (Op (RawName "/")
+              (Op (RawName "*")
                 (FloatLiteral 1)
                 (FloatLiteral 2))
-              (VarRef (Name "qw"))))
+              (VarRef (RawName "qw"))))
           (FloatLiteral 1234.56))]
 
 
@@ -155,10 +158,11 @@ testOpsAndFunctions = parseAndCheck input (Module defs [])
     input = "f = g a * b\n\
             \f' = g' a (*) b\n"
     defs = [
-      Def (Name "f") []
-        (Op (Name "*")
-          (Call (Name "g") [VarRef (Name "a")])
-          (VarRef (Name "b"))),
-      Def (Name "f'") [] (Call (Name "g'")
-        [VarRef (Name "a"), VarRef (Name "*"), VarRef (Name "b")])]
+      Def (RawName "f") []
+        (Op (RawName "*")
+          (Call (RawName "g") [VarRef (RawName "a")])
+          (VarRef (RawName "b"))),
+      Def (RawName "f'") [] (Call (RawName "g'")
+        [VarRef (RawName "a"), VarRef (RawName "*"),
+                             VarRef (RawName "b")])]
         

@@ -14,11 +14,13 @@ limitations under the License.
 -}
 
 module Funk.Parser
-       ( parse
+       ( parse,
+         RawName(..)
        ) where
 
 import Funk.AST
 import qualified Funk.Lexer as Lex
+import Funk.Names (RawName(..))
 
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.String
@@ -28,6 +30,7 @@ import Text.Parsec ((<|>), many, manyTill, many1, ParseError,
 
 import Control.Applicative ((<$>))
 import Data.Either (partitionEithers)
+
 
 type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
 --token :: (tok -> String) -> (tok -> SourcePos) -> (tok -> Maybe a)
@@ -91,40 +94,40 @@ keywordForeign = token $ \tok -> case tok of
   _                  -> Nothing
 
 
-parse :: String -> String -> Either ParseError Module
+parse :: String -> String -> Either ParseError (Module RawName)
 parse filename input = Parsec.parse module' filename (Lex.lex input)
 
-module' :: Parser Module
+module' :: Parser (Module RawName)
 module' = ((uncurry Module) . partitionEithers) <$> manyTill def' eof
 
 
 -- Def' -> Def | ForeignDef
-def' :: Parser (Either Def ForeignDef)
+def' :: Parser (Either (Def RawName) (ForeignDef RawName))
 def' = (parsecMap Right foreignDef) <|> (parsecMap Left def)
 
 
 -- ParamList -> identifier ParamList
 -- ParamList -> 
-paramList :: Parser [Name]
-paramList = fmap Name <$> (many identifier)
+paramList :: Parser [RawName]
+paramList = fmap RawName <$> (many identifier)
 
 
 -- ForeignDef -> "keywordForeign identifier ParamList defOp Expr
-foreignDef :: Parser ForeignDef
+foreignDef :: Parser (ForeignDef RawName)
 foreignDef = do
   keywordForeign
-  n <- Name <$> identifier
+  n <- RawName <$> identifier
   params <- paramList
   defOp
-  n' <- Name <$> identifier
+  n' <- RawName <$> identifier
   eol
   return (ForeignDef n params n')
   
 
 -- Def -> identifier ParamList defOp Expr
-def :: Parser Def
+def :: Parser (Def RawName)
 def = do
-  n <- Name <$> identifier
+  n <- RawName <$> identifier
   params <- paramList
   defOp
   e <- expr
@@ -184,63 +187,63 @@ def = do
 --
 -----------------------------------------------------------------
 
-expr :: Parser Expr
+expr :: Parser (Expr RawName)
 expr = opExpr3
 
-opExpr3 :: Parser Expr
+opExpr3 :: Parser (Expr RawName)
 opExpr3 = do
   e <- opExpr2
   opExpr3' e <|> return e
 
-opExpr3' :: Expr -> Parser Expr
+opExpr3' :: (Expr RawName) -> Parser (Expr RawName)
 opExpr3' left = do
-  n <- Name <$> op
+  n <- RawName <$> op
   right <- opExpr2
   let e = Op n left right
   opExpr3' e <|> return e
   
-opExpr2 :: Parser Expr
+opExpr2 :: Parser (Expr RawName)
 opExpr2 = do
   e <- opExpr1
   opExpr2' e <|> return e
 
-opExpr2' :: Expr -> Parser Expr
+opExpr2' :: (Expr RawName) -> Parser (Expr RawName)
 opExpr2' left = do
-  n <- Name <$> op2
+  n <- RawName <$> op2
   right <- opExpr1
   let e = Op n left right
   opExpr2' e <|> return e
 
-opExpr1 :: Parser Expr
+opExpr1 :: Parser (Expr RawName)
 opExpr1 = do
   e <- funcExpr
   opExpr1' e <|> return e
 
-opExpr1' :: Expr -> Parser Expr
+opExpr1' :: (Expr RawName) -> Parser (Expr RawName)
 opExpr1' left = do
-  n <- Name <$> op1
+  n <- RawName <$> op1
   right <- funcExpr
   let e = Op n left right
   opExpr1' e <|> return e
 
-funcExpr :: Parser Expr
+funcExpr :: Parser (Expr RawName)
 funcExpr = idExpr <|> atomicExpr
 
-idExpr :: Parser Expr
+idExpr :: Parser (Expr RawName)
 idExpr = do
-  n <- Name <$> identifier
+  n <- RawName <$> identifier
   funcCall n <|> return (VarRef n)
 
-funcCall :: Name -> Parser Expr
+funcCall :: RawName -> Parser (Expr RawName)
 funcCall n = Call n <$> many1 argExpr
 
-argExpr :: Parser Expr
-argExpr = ((VarRef . Name) <$> identifier) <|> atomicExpr
+argExpr :: Parser (Expr RawName)
+argExpr = ((VarRef . RawName) <$> identifier) <|> atomicExpr
 
-atomicExpr :: Parser Expr
+atomicExpr :: Parser (Expr RawName)
 atomicExpr = parenExpr <|> (FloatLiteral <$> floatLiteral)
 
-parenExpr :: Parser Expr
+parenExpr :: Parser (Expr RawName)
 parenExpr = do
   openParen
   r <- expr

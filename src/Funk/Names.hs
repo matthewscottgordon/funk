@@ -13,13 +13,27 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -}
 
-import Funk.Parser
-import Funk.Renamer
+{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
-main :: IO ()
-main = do
-  input <- getContents
-  case Funk.Parser.parse "<stdin>" input of
-    Left e -> putStrLn $ show e
-    Right r -> putStrLn $ show r
-  return ()
+module Funk.Names
+       ( RawName(..),
+         ResolvedName(..),
+         Location(..)
+       ) where
+
+import Funk.Scope (ScopedName(..))
+
+data RawName = RawName String
+             deriving (Eq, Show)
+
+
+
+data ResolvedName = ResolvedName String Location
+
+data Location = ModuleRef String
+              | FunctionParamRef String
+
+instance ScopedName ResolvedName Location where
+  name (ResolvedName s _) = s
+  location (ResolvedName _ l) = l
+  scopedName = ResolvedName

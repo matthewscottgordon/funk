@@ -17,9 +17,10 @@ import Test.Framework (defaultMain, Test)
 
 import qualified Test.Lexer
 import qualified Test.Parser
+import qualified Test.Scope
 
 tests :: [Test]
-tests = [Test.Lexer.tests, Test.Parser.tests]
+tests = [Test.Lexer.tests, Test.Parser.tests, Test.Scope.tests]
 
 main :: IO ()
 main = defaultMain tests

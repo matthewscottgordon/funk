@@ -16,35 +16,44 @@ limitations under the License.
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
 module Funk.Scope
-       ( ScopedName(..),
-         Scope,
+       ( Scope,
          createGlobalScope,
          createScope,
          addNameToScope,
          findName
        ) where
 
-class ScopedName n l | n -> l where
-  name :: n -> String
-  location :: n -> l
-  scopedName :: String -> l -> n
+import Funk.Names (Location(..),
+                   ResolvedName(..),
+                   UnresolvedName(..))
+
+import Data.List (find)
+
+data Scope a = Scope Location [UnresolvedName a] (Scope a)
+             | GlobalScope [UnresolvedName a]
 
 
-data Scope n = Scope [n] (Scope n)
-             | GlobalScope [n]
+createGlobalScope :: Scope a
+createGlobalScope = GlobalScope []
 
 
-createGlobalScope :: ScopedName n l => Scope n
-createGlobalScope = undefined
+createScope :: Scope a -> Location  -> Scope a
+createScope s l = Scope l [] s
 
 
-createScope :: ScopedName n l => Scope n -> l -> Scope n
-createScope = undefined
+addNameToScope :: Scope a -> UnresolvedName a -> Scope a
+addNameToScope (GlobalScope ns) n= GlobalScope (n:ns)
+addNameToScope (Scope l ns s') n = Scope l (n:ns) s'
 
 
-addNameToScope :: ScopedName n l => Scope n -> String -> Scope n
-addNameToScope = undefined
+findName :: Scope a -> String -> Maybe (ResolvedName a)
+findName (Scope l ns s) n = case (find (hasName n) ns) of
+  Just (UnresolvedName n' a) -> Just (ResolvedName n' a l)
+  Nothing -> findName s n
+findName (GlobalScope ns) n = case (find (hasName n) ns) of
+  Just (UnresolvedName n' a) -> Just (ResolvedName n' a GlobalRef)
+  Nothing -> Nothing
 
 
-findName :: ScopedName n l => Scope n -> String -> Maybe n
-findName = undefined
+hasName :: String -> UnresolvedName a -> Bool
+hasName s (UnresolvedName s' _) = s == s'

@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+
 module Funk.Parser
        ( parse,
          RawName
@@ -30,6 +32,7 @@ import Text.Parsec ((<|>), many, manyTill, many1, ParseError,
 
 import Control.Applicative ((<$>))
 import Data.Either (partitionEithers)
+import Control.Monad.Error
 
 
 type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
@@ -65,6 +68,7 @@ op = token $ \tok -> case tok of
 
 op1 :: Parser String
 op1 = token $ \tok -> case tok of
+
   Lex.Op1  s -> Just s
   _             -> Nothing
 
@@ -94,8 +98,14 @@ keywordForeign = token $ \tok -> case tok of
   _                  -> Nothing
 
 
-parse :: String -> String -> Either ParseError (Module RawName)
-parse filename input = Parsec.parse module' filename (Lex.lex input)
+parse :: MonadError String m => String -> String -> m (Module RawName)
+parse = (convertError .) . parse'
+  where
+    convertError (Right r) = return r
+    convertError (Left e) = fail (show e)
+
+parse' :: String -> String -> Either ParseError (Module RawName)
+parse' filename input = Parsec.parse module' filename (Lex.lex input)
 
 module' :: Parser (Module RawName)
 module' = ((uncurry Module) . partitionEithers) <$> manyTill def' eof

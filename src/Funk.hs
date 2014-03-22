@@ -13,13 +13,34 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+
+import Funk.Names
+import Funk.AST
 import Funk.Parser
 import Funk.Renamer
+import Funk.CodeGen
+
+import Control.Monad.Error
+
 
 main :: IO ()
 main = do
-  input <- getContents
-  case Funk.Parser.parse "<stdin>" input of
-    Left e -> putStrLn $ show e
-    Right r -> putStrLn $ show r
+  r <- runErrorT main'
+  case r of
+    Left e  -> putStrLn ("ERROR: " ++ e)
+    Right _ -> return ()
+
+main' :: ErrorT String IO ()
+main' = do
+  input <- liftIO getContents
+  ast <- compile input
+  llvmIR <- Funk.CodeGen.showLLVM ast
+  liftIO $ putStrLn llvmIR
   return ()
+
+
+compile :: MonadError String m => String -> m (Module (ResolvedName ()))
+compile input =
+  Funk.Parser.parse "<stdin>" input >>= Funk.Renamer.rename
+

@@ -13,6 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+
 module Funk.Renamer
        ( rename
        ) where
@@ -29,20 +31,14 @@ import Data.List (foldl')
 import Control.Monad.Error
 
 
-data RenameError = RenameError String
-type RenameEither a = Either RenameError a
-
-instance Error RenameError where
-  strMsg = RenameError
-
 type Scope = Funk.Scope.Scope ()
 
-rename :: Module RawName -> RenameEither (Module (ResolvedName ()))
+rename :: MonadError String m => Module RawName -> m (Module (ResolvedName ()))
 rename (Module defs fdefs) = do
   defs' <- mapM (renameDef moduleScope) defs
   return (Module defs' fdefs')
   where
-    fdefs' = undefined
+    fdefs' = []
     moduleScope = foldl' addDefToScope createGlobalScope defs
 
 
@@ -50,13 +46,13 @@ addDefToScope :: Scope -> Def RawName -> Scope
 addDefToScope s (Def n _ _) = Funk.Scope.addNameToScope s n
 
 
-findName :: Scope -> String -> Either RenameError (ResolvedName ())
+findName :: MonadError a m => Scope -> String -> m (ResolvedName ())
 findName scope n = case Funk.Scope.findName scope n of
-  Just n' -> Right n'
-  Nothing -> Left (RenameError n)
+  Just n' -> return n'
+  Nothing -> fail ("Undefined: \"" ++ n ++ "\"")
 
-renameDef :: Scope -> Def RawName ->
-             RenameEither (Def (ResolvedName ()))
+renameDef :: MonadError String m => Scope -> Def RawName ->
+             m (Def (ResolvedName ()))
 renameDef scope (Def (UnresolvedName fName _) ps fBody) = do
   let location = FunctionParamRef fName
       ps' = map paramToRef ps
@@ -69,9 +65,9 @@ renameDef scope (Def (UnresolvedName fName _) ps fBody) = do
     paramToRef (UnresolvedName n _) =
       ResolvedName n () (FunctionParamRef fName)
 
-renameExpr :: Scope -> Expr RawName ->
-              RenameEither (Expr (ResolvedName()))
-renameExpr _ (FloatLiteral v) = Right (FloatLiteral v)
+renameExpr :: MonadError a m => Scope -> Expr RawName ->
+              m (Expr (ResolvedName()))
+renameExpr _ (FloatLiteral v) = return (FloatLiteral v)
 renameExpr s (Call (UnresolvedName n _bb) exprs) = do
   n' <- findName s n
   exprs' <- mapM (renameExpr s) exprs

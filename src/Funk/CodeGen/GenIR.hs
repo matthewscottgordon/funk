@@ -36,9 +36,10 @@ import qualified Funk.Names as F
 
 import Control.Monad.State
 import Control.Applicative ((<$>))
-import Data.Word
 
-type Name = F.ResolvedName ()
+import Funk.CodeGen.GenIR.Types
+import Funk.CodeGen.GenIR.BuiltIns (getBuiltIn)
+
 
 showLLVM :: F.Module (F.ResolvedName ()) -> String
 showLLVM = showPretty . genIR
@@ -52,17 +53,8 @@ genIR (F.Module defs _) =
       llvmDefs <- mapM defIR defs
       return $ map L.GlobalDefinition llvmDefs
 
-data GenState = GenState Word
-type GenM a = State GenState a
-
 runGen :: GenM a -> a
 runGen act = evalState act (GenState 0)
-
-newName :: GenM L.Name
-newName = do
-  (GenState i) <- get
-  put (GenState (i+1))
-  return $ L.UnName i
   
 defIR :: F.Def (F.ResolvedName ()) -> GenM L.Global
 defIR (F.Def (F.ResolvedName n () _)  ps body) = do
@@ -96,8 +88,6 @@ bodyIR body = do
     mkResult (NamedResult n) =
       (L.Do (L.Ret (Just (L.LocalReference n)) [] ))
 
-data ExprResult = DoubleResult Double | NamedResult L.Name
-
 
 exprIR :: F.Expr (F.ResolvedName ())
           -> GenM ([L.Named L.Instruction], ExprResult)
@@ -117,7 +107,13 @@ callIR n argExprs = do
 
 mkCall :: Name -> [ExprResult] ->
           GenM (L.Named L.Instruction, ExprResult)
-mkCall n args = do
+mkCall n = case getBuiltIn n of
+  Just f  -> f
+  Nothing -> mkCall' n
+
+mkCall' :: Name -> [ExprResult] ->
+           GenM (L.Named L.Instruction, ExprResult)
+mkCall' n args = do
   name <- newName
   let args' = map (\arg -> (mkOperand arg, [])) args
   return (name := instr args', NamedResult name)
@@ -132,17 +128,5 @@ mkCall n args = do
                  (Right function)
                  as functionAttr metadata
 
-class Operand a where
-  mkOperand :: a -> L.Operand
 
-instance Operand Name where
-  mkOperand (F.ResolvedName n _ l) =
-    ((if l == F.GlobalRef
-      then L.ConstantOperand . L.GlobalReference
-      else L.LocalReference ) . L.Name) n
-
-instance Operand ExprResult where
-  mkOperand (DoubleResult v) =
-    (L.ConstantOperand . L.Float . L.Double) v
-  mkOperand (NamedResult n) = L.LocalReference n
 

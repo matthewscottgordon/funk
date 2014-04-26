@@ -20,6 +20,8 @@ import Test.Framework (testGroup)
 import qualified Test.Framework
 import Test.Framework.Providers.HUnit
 
+import Data.List (intercalate)
+
 import Funk.Lexer as Target
 
 
@@ -72,7 +74,10 @@ tests = testGroup "Lexer Tests"  [
     testGroup "Bad Tokens" [
       testSingleToken "2a" (BadToken "2a"),
       testSingleToken "_foo" (BadToken "_foo")]
-    ]]
+    ],
+  testGroup "Short Programs" [
+    testProgram1
+  ]]
 
 assertSingleToken :: Token -> [(Posn, Token)] -> Assertion
 assertSingleToken t ((_, t'):[]) = assertEqual "Wrong token" t t'
@@ -85,3 +90,28 @@ testSingleToken s t = testCase msg $ assertSingleToken t (Target.lex s)
   where
     msg = "\"" ++ s ++ "\" is \"" ++ (show t) ++ "\""
 
+assertTokenList :: [Token] -> [(Posn, Token)] -> Assertion
+assertTokenList = f 1
+  where
+    f n (e:es) ((p,t):ts) = if e==t 
+                               then f (n+1) es ts
+                               else assertFailure (failMsg e t n p)
+    f n [] []            = return ()
+    f _ [] _             = assertFailure "Found more tokens than expected"
+    f n _ []             = assertFailure ("Found " ++ (show n) ++
+                              " tokens but expected more.")
+    failMsg e t n p = intercalate " "
+      ["Expected token", (show n), "to be", (show e), "but found",
+       (show t), "at", (show p), "instead."]
+
+testProgram1 :: Test.Framework.Test
+testProgram1 = testCase "Simple program" $ do
+  assertTokenList expected (Target.lex input)
+  where
+    expected = [ Id "foo", Id "a", Id "b", DefOp, Id "add", Id "a",
+                 Id "b", FloatLiteral 3, Eol, Id "bar", DefOp, Id "foo",
+                 FloatLiteral 1, FloatLiteral 2, Eol, Id "baz", DefOp,
+                 Id "foo", Id "bar", Id "bar", Eol ]
+    input = "foo a b = add a b 3\n\
+            \bar = foo 1 2\n\
+            \baz = foo bar bar\n"

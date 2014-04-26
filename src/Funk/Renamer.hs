@@ -34,11 +34,10 @@ import Control.Monad.Error
 type Scope = Funk.Scope.Scope ()
 
 rename :: MonadError String m => Module RawName -> m (Module (ResolvedName ()))
-rename (Module defs fdefs) = do
+rename (Module defs) = do
   defs' <- mapM (renameDef moduleScope) defs
-  return (Module defs' fdefs')
+  return (Module defs')
   where
-    fdefs' = []
     moduleScope = foldl' addDefToScope createGlobalScope defs
 
 

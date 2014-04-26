@@ -44,16 +44,15 @@ checkList s ds ds' = do
 
 
 parseAndCheck :: String -> (Module RawName) -> Assertion
-parseAndCheck input (Module expectedDefs expectedFDefs) = do
+parseAndCheck input (Module expectedDefs) = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
-    Right (Module defs fdefs) -> do
+    Right (Module defs) -> do
       checkList "Def" expectedDefs defs
-      checkList "ForeignDef" expectedFDefs fdefs
 
     
 testParserBasic :: Assertion
-testParserBasic = parseAndCheck input (Module expectedDefs [])
+testParserBasic = parseAndCheck input (Module expectedDefs)
   where
     input = "foo a b = add a b 3\n\
             \bar = foo 1 2\n\
@@ -70,7 +69,7 @@ testParserBasic = parseAndCheck input (Module expectedDefs [])
         [VarRef (rawName "bar"), VarRef (rawName "bar")]) ]
 
 testPrefixOp :: Assertion
-testPrefixOp = parseAndCheck input (Module expectedDefs [])
+testPrefixOp = parseAndCheck input (Module expectedDefs)
   where
     input = "foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
@@ -83,7 +82,7 @@ testPrefixOp = parseAndCheck input (Module expectedDefs [])
           [FloatLiteral 1, FloatLiteral 2]) ]
 
 testForeignFunctions :: Assertion
-testForeignFunctions = parseAndCheck input (Module [] expectedFDefs)
+testForeignFunctions = parseAndCheck input (Module expectedFDefs)
   where
     input = "foreign sin theta = sin\n\
             \foreign arcTan2 y x = atan2\n"
@@ -93,7 +92,7 @@ testForeignFunctions = parseAndCheck input (Module [] expectedFDefs)
                  (rawName "atan2")]
 
 testMixedForeignAndRegularFunc :: Assertion
-testMixedForeignAndRegularFunc = parseAndCheck input (Module defs fdefs)
+testMixedForeignAndRegularFunc = parseAndCheck input (Module defs)
   where
     input = "foo a b = add a b 3\n\
             \bar = foo 1 2\n\
@@ -112,19 +111,18 @@ testMixedForeignAndRegularFunc = parseAndCheck input (Module defs fdefs)
       Def (rawName "baz") []
        (Call (rawName "foo")
         [VarRef (rawName "bar"), VarRef (rawName "bar")]),
+      ForeignDef (rawName "sin") [rawName "theta"] (rawName "sin"),
+      ForeignDef (rawName "arcTan2") [rawName "y", rawName "x"]
+                 (rawName "atan2"),
       Def (rawName "foo") [rawName "a", rawName "b"]
        (Call (rawName "+")
         [VarRef (rawName "a"), VarRef (rawName "b")]),
       Def (rawName "bar") []
        (Call (rawName "<$>")
-        [FloatLiteral 1, FloatLiteral 2]) ]
-    fdefs = [
-      ForeignDef (rawName "sin") [rawName "theta"] (rawName "sin"),
-      ForeignDef (rawName "arcTan2") [rawName "y", rawName "x"]
-                 (rawName "atan2")]
+        [FloatLiteral 1, FloatLiteral 2])]
 
 testOpsBasic :: Assertion
-testOpsBasic = parseAndCheck input (Module defs [])
+testOpsBasic = parseAndCheck input (Module defs)
   where
     input = "bind a b = a >>= b\n\
             \equal3 one two three = one == two == three\n\
@@ -154,7 +152,7 @@ testOpsBasic = parseAndCheck input (Module defs [])
 
 
 testOpsAndFunctions :: Assertion
-testOpsAndFunctions = parseAndCheck input (Module defs [])
+testOpsAndFunctions = parseAndCheck input (Module defs)
   where
     input = "f = g a * b\n\
             \f' = g' a (*) b\n"

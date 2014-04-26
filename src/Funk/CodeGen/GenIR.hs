@@ -45,7 +45,7 @@ showLLVM :: F.Module (F.ResolvedName ()) -> String
 showLLVM = showPretty . genIR
 
 genIR :: F.Module (F.ResolvedName ()) -> L.Module
-genIR (F.Module defs _) =
+genIR (F.Module defs) =
   L.Module "*Module*" Nothing Nothing ds
   where
     ds :: [L.Definition]

@@ -108,12 +108,12 @@ parse' :: String -> String -> Either ParseError (Module RawName)
 parse' filename input = Parsec.parse module' filename (Lex.lex input)
 
 module' :: Parser (Module RawName)
-module' = ((uncurry Module) . partitionEithers) <$> manyTill def' eof
+module' = Module <$> manyTill def' eof
 
 
 -- Def' -> Def | ForeignDef
-def' :: Parser (Either (Def RawName) (ForeignDef RawName))
-def' = (parsecMap Right foreignDef) <|> (parsecMap Left def)
+def' :: Parser (Def RawName)
+def' = def <|> foreignDef
 
 
 -- ParamList -> identifier ParamList
@@ -123,7 +123,7 @@ paramList = fmap rawName <$> (many identifier)
 
 
 -- ForeignDef -> "keywordForeign identifier ParamList defOp Expr
-foreignDef :: Parser (ForeignDef RawName)
+foreignDef :: Parser (Def RawName)
 foreignDef = do
   keywordForeign
   n <- rawName <$> identifier

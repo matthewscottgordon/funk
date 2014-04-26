@@ -15,10 +15,11 @@ limitations under the License.
 
 module Funk.AST where
 
-data Module name = Module [Def name] [ForeignDef name]
+data Module name = Module [Def name]
                  deriving Show
 
 data Def name = Def (name) [name] (Expr name)
+              | ForeignDef (name) [name] (name)
               deriving (Eq, Show)
 
 data Expr name = FloatLiteral Double
@@ -27,6 +28,4 @@ data Expr name = FloatLiteral Double
                | VarRef (name)
                deriving (Eq, Show)
 
-data ForeignDef name = ForeignDef (name) [name] (name)
-                     deriving (Eq, Show)
 

@@ -126,6 +126,8 @@ testOpsBasic = parseAndCheck input (Module defs)
   where
     input = "bind a b = a >>= b\n\
             \equal3 one two three = one == two == three\n\
+            \bar' a b c = b * c + a\n\
+            \bar a b c = a + b * c\n\
             \foo qw er = er + 1 * 2 / qw - 1234.56\n"
     defs = [
       Def (rawName "bind") [rawName "a", rawName "b"]
@@ -139,6 +141,18 @@ testOpsBasic = parseAndCheck input (Module defs)
              (VarRef (rawName "one"))
              (VarRef (rawName "two")))
           (VarRef (rawName "three"))),
+      Def (rawName "bar'") [rawName "a", rawName "b", rawName "c"]
+        (Op (rawName "+")
+          (Op (rawName "*")
+            (VarRef (rawName "b"))
+            (VarRef (rawName "c")))
+          (VarRef (rawName "a"))),
+      Def (rawName "bar") [rawName "a", rawName "b", rawName "c"]
+        (Op (rawName "+")
+          (VarRef (rawName "a"))
+          (Op (rawName "*")
+            (VarRef (rawName "b"))
+            (VarRef (rawName "c")))),
       Def (rawName "foo") [rawName "qw", rawName "er"]
         (Op (rawName "-")
           (Op (rawName "+")

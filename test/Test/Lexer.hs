@@ -58,26 +58,25 @@ tests = testGroup "Lexer Tests"  [
       testSingleToken "(/)" (Id "/"),
       testSingleToken "(?!!)" (Id "?!!")],
     testGroup "Operators with precedence 1" [
-      testSingleToken "*" (Op1 "*"),
-      testSingleToken "/" (Op1 "/")],
+      testSingleToken "*" (Op 1 "*"),
+      testSingleToken "/" (Op 1 "/")],
     testGroup "Operators with precedence 2" [
-      testSingleToken "+" (Op2 "+"),
-      testSingleToken "-" (Op2 "-")],
+      testSingleToken "+" (Op 2 "+"),
+      testSingleToken "-" (Op 2 "-")],
     testGroup "Operators with precedence 3" [
-      testSingleToken "++" (Op "++"),
-      testSingleToken "==/" (Op "==/"),
-      testSingleToken "?" (Op "?"),
-      testSingleToken "@" (Op "@"),
-      testSingleToken "$$$*^$@?/>>" (Op "$$$*^$@?/>>")],
+      testSingleToken "++" (Op 7 "++"),
+      testSingleToken "==/" (Op 7 "==/"),
+      testSingleToken "?" (Op 7 "?"),
+      testSingleToken "@" (Op 7 "@"),
+      testSingleToken "$$$*^$@?/>>" (Op 7 "$$$*^$@?/>>")],
     testGroup "Identifiers in backticks" [
-      testSingleToken "`foo`" (Op "foo")],
+      testSingleToken "`foo`" (Op 7 "foo")],
     testGroup "Bad Tokens" [
       testSingleToken "2a" (BadToken "2a"),
       testSingleToken "_foo" (BadToken "_foo")]
     ],
-  testGroup "Short Programs" [
-    testProgram1
-  ]]
+  testGroup "Short Programs" (testPrograms testProgramList)
+  ]
 
 assertSingleToken :: Token -> [(Posn, Token)] -> Assertion
 assertSingleToken t ((_, t'):[]) = assertEqual "Wrong token" t t'
@@ -104,14 +103,40 @@ assertTokenList = f 1
       ["Expected token", (show n), "to be", (show e), "but found",
        (show t), "at", (show p), "instead."]
 
-testProgram1 :: Test.Framework.Test
-testProgram1 = testCase "Simple program" $ do
-  assertTokenList expected (Target.lex input)
+data TestProgram = TestProgram String String [Token]
+
+testPrograms :: [TestProgram] -> [Test.Framework.Test]
+testPrograms = map f
   where
-    expected = [ Id "foo", Id "a", Id "b", DefOp, Id "add", Id "a",
-                 Id "b", FloatLiteral 3, Eol, Id "bar", DefOp, Id "foo",
-                 FloatLiteral 1, FloatLiteral 2, Eol, Id "baz", DefOp,
-                 Id "foo", Id "bar", Id "bar", Eol ]
-    input = "foo a b = add a b 3\n\
-            \bar = foo 1 2\n\
-            \baz = foo bar bar\n"
+    f (TestProgram d i e) =
+      testCase d $ assertTokenList e (Target.lex i)
+
+testProgramList :: [TestProgram]
+testProgramList =
+  [ TestProgram "Simple program"
+      "foo a b = add a b 3\n\
+      \bar = foo 1 2\n\
+      \baz = foo bar bar\n"
+      [ Id "foo", Id "a", Id "b", DefOp, Id "add", Id "a",
+        Id "b", FloatLiteral 3, Eol, Id "bar", DefOp, Id "foo",
+        FloatLiteral 1, FloatLiteral 2, Eol, Id "baz", DefOp,
+        Id "foo", Id "bar", Id "bar", Eol ],
+    TestProgram "Program with operators"
+      "bind a b = a >>= b\n\
+      \equal3 one two three = one == two == three\n\
+      \bar' a b c = b * c + a\n\
+      \bar a b c = a + b * c\n\
+      \foo qw er = er + 1 * 2 / qw - 1234.56\n"
+      [ Id "bind", Id "a", Id "b", DefOp, Id "a", Op 7 ">>=",
+        Id "b", Eol,
+        Id "equal3", Id "one", Id "two", Id "three", DefOp, Id "one",
+        Op 4 "==", Id "two", Op 4 "==", Id "three", Eol,
+        Id "bar'", Id "a", Id "b", Id "c", DefOp, Id "b", Op 1 "*",
+        Id "c", Op 2 "+", Id "a", Eol,
+        Id "bar", Id "a", Id "b", Id "c", DefOp, Id "a", Op 2 "+",
+        Id "b", Op 1 "*", Id "c", Eol,
+        Id "foo", Id "qw", Id "er", DefOp, Id "er", Op 2 "+",
+        FloatLiteral 1, Op 1 "*", FloatLiteral 2, Op 1 "/",
+        Id "qw", Op 2 "-", FloatLiteral 1234.56, Eol ]
+ ]
+

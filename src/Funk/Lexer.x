@@ -37,8 +37,12 @@ $eol         = \n
 $white_no_nl = $white # $eol
 
 @identifier = $alpha_lower $id_char*
-@op1 = [\*\/]
+@op1 = [\*\/\%]
 @op2 = [\+\-]
+@op3 = [\<\>]|\<\=|\>\=
+@op4 = \=\=|\!\=
+@op5 = \&\&
+@op6 = \|\|
 
 tokens :-
 
@@ -48,10 +52,14 @@ tokens :-
   @identifier                     { mkToken Id }
   "="                             { mkToken (\_ -> DefOp) }
   "(" $op_char+ ")"               { mkToken (Id . init . tail) }
-  @op1                            { mkToken Op1 }
-  @op2                            { mkToken Op2 }
-  $op_char+                       { mkToken Op }
-  "`" @identifier "`"             { mkToken (Op . init . tail) }
+  @op1                            { mkToken (Op 1) }
+  @op2                            { mkToken (Op 2) }
+  @op3                            { mkToken (Op 3) }
+  @op4                            { mkToken (Op 4) }
+  @op5                            { mkToken (Op 5) }
+  @op6                            { mkToken (Op 6) }
+  $op_char+                       { mkToken (Op 7) }
+  "`" @identifier "`"             { mkToken ((Op 7) . init . tail) }
   "("                             { mkToken (\_ -> OpenParen) }
   ")"                             { mkToken (\_ -> CloseParen) }
   $eol                            { mkToken (\_ -> Eol) }
@@ -68,9 +76,7 @@ data Token = FloatLiteral Double
            | KeywordForeign
            | DefOp
            | Id String
-           | Op String
-           | Op1 String
-           | Op2 String
+           | Op Integer String
            | OpenParen
            | CloseParen
            | Eol

@@ -61,21 +61,10 @@ identifier = token $ \tok -> case tok of
   Lex.Id s -> Just s
   _          -> Nothing
 
-op :: Parser String
-op = token $ \tok -> case tok of
-  Lex.Op  s -> Just s
-  _             -> Nothing
-
-op1 :: Parser String
-op1 = token $ \tok -> case tok of
-
-  Lex.Op1  s -> Just s
-  _             -> Nothing
-
-op2 :: Parser String
-op2 = token $ \tok -> case tok of
-  Lex.Op2  s -> Just s
-  _             -> Nothing
+op :: Integer -> Parser String
+op precedence = token $ \tok -> case tok of
+  Lex.Op p s -> if p == precedence then Just s else Nothing
+  _          -> Nothing
 
 openParen :: Parser ()
 openParen = token $ \tok -> case tok of
@@ -198,43 +187,21 @@ def = do
 -----------------------------------------------------------------
 
 expr :: Parser (Expr RawName)
-expr = opExpr3
+expr = opExpr lowestOperatorPrecedence
+  where
+    lowestOperatorPrecedence = 7
 
-opExpr3 :: Parser (Expr RawName)
-opExpr3 = do
-  e <- opExpr2
-  opExpr3' e <|> return e
-
-opExpr3' :: (Expr RawName) -> Parser (Expr RawName)
-opExpr3' left = do
-  n <- rawName <$> op
-  right <- opExpr2
-  let e = Op n left right
-  opExpr3' e <|> return e
+opExpr :: Integer -> Parser (Expr RawName)
+opExpr precedence = do
+  e <- if precedence > 1 then opExpr (precedence-1) else funcExpr
+  opExpr' precedence e <|> return e
   
-opExpr2 :: Parser (Expr RawName)
-opExpr2 = do
-  e <- opExpr1
-  opExpr2' e <|> return e
-
-opExpr2' :: (Expr RawName) -> Parser (Expr RawName)
-opExpr2' left = do
-  n <- rawName <$> op2
-  right <- opExpr1
+opExpr' :: Integer -> (Expr RawName) -> Parser (Expr RawName)
+opExpr' precedence left = do
+  n <- rawName <$> op precedence
+  right <- if precedence > 1 then opExpr (precedence-1) else funcExpr
   let e = Op n left right
-  opExpr2' e <|> return e
-
-opExpr1 :: Parser (Expr RawName)
-opExpr1 = do
-  e <- funcExpr
-  opExpr1' e <|> return e
-
-opExpr1' :: (Expr RawName) -> Parser (Expr RawName)
-opExpr1' left = do
-  n <- rawName <$> op1
-  right <- funcExpr
-  let e = Op n left right
-  opExpr1' e <|> return e
+  opExpr' precedence e <|> return e
 
 funcExpr :: Parser (Expr RawName)
 funcExpr = idExpr <|> atomicExpr

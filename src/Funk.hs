@@ -15,6 +15,7 @@ limitations under the License.
 
 {-# LANGUAGE FlexibleContexts #-}
 
+import Funk.Options
 import Funk.Names
 import Funk.AST
 import Funk.Parser

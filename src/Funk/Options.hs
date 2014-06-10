@@ -17,6 +17,7 @@ module Funk.Options (
   parseOpts,
   Options(..),
   Output(..),
+  Input(..),
   getInputFiles
   ) where
 

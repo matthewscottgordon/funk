@@ -15,7 +15,8 @@ limitations under the License.
 
 {-# LANGUAGE FlexibleContexts #-}
 
-import Funk.Options
+import qualified Funk.Options as Opt
+import Funk.Options (parseOpts, Options(..))
 import Funk.Names
 import Funk.AST
 import Funk.Parser
@@ -23,23 +24,47 @@ import Funk.Renamer
 import Funk.CodeGen
 
 import Control.Monad.Error
+import Control.Applicative ((<$>))
+import Control.Monad (forM, forM_)
 
+import System.Environment (getArgs)
+import System.IO ( IOMode(ReadMode),
+                   Handle,
+                   hClose,
+                   hGetContents,
+                   openFile,
+                   putStrLn )
 
 main :: IO ()
 main = do
-  r <- runErrorT main'
+  r <- runErrorT $ do
+    opts <- ErrorT (parseOpts <$> liftIO getArgs)
+    main' opts
   case r of
-    Left e  -> putStrLn ("ERROR: " ++ e)
+    Left e  -> putStrLn e
     Right _ -> return ()
 
-main' :: ErrorT String IO ()
-main' = do
-  input <- liftIO getContents
-  ast <- compile input
-  llvmIR <- Funk.CodeGen.showLLVM ast
-  liftIO $ putStrLn llvmIR
-  return ()
 
+main' :: Options -> ErrorT String IO ()
+
+main' (Options _ Opt.PrintVersion) = liftIO $ putStrLn "Funk prototype"
+
+main' (Options files (Opt.Assembly outFile)) = do
+  asts <- forM files $ \file -> do
+    h <- openSource file
+    text <- liftIO $ hGetContents h
+    compile text
+  forM_ asts $ \ast -> do
+    llvmIR <- Funk.CodeGen.showLLVM ast
+    liftIO $ putStrLn llvmIR
+
+main' (Options _ (Opt.Object _)) = liftIO $ putStrLn "Object"
+
+main' (Options _ (Opt.Executable _)) = liftIO $ putStrLn "Executable"
+
+
+openSource :: Opt.Input -> ErrorT String IO Handle
+openSource (Opt.Source filename) = liftIO $ openFile filename ReadMode
 
 compile :: MonadError String m => String -> m (Module (ResolvedName ()))
 compile input =

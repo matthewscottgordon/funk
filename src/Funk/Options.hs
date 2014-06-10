@@ -78,8 +78,8 @@ getOpt = untuple . G.getOpt G.RequireOrder optDescriptions
 
 mkOutput :: [Flag] -> Output
 mkOutput flags | elem Version flags = PrintVersion
-               | elem Assemble flags = Assembly (getOutFile flags)
-               | elem Compile flags = Object (getOutFile flags)
+               | elem Compile flags = Assembly (getOutFile flags)
+               | elem Assemble flags = Object (getOutFile flags)
                | otherwise = Executable (getOutFile flags)
   where getOutFile ((OutputFile s):_) = Just s
         getOutFile (_:rest)           = getOutFile rest

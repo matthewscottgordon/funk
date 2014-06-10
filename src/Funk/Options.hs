@@ -51,7 +51,7 @@ optDescriptions = [
   G.Option "S" ["compile-only"] (G.NoArg Compile)
   "compile only, do not assemble or link",
   G.Option "c" ["compile-and-assemble"] (G.NoArg Assemble)
-  "compile and assamble, do not link",
+  "compile and assemble, do not link",
   G.Option "o" ["output"] (G.ReqArg OutputFile "<file>")
   "write output to <file>" ]
 

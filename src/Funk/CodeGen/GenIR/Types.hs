@@ -52,10 +52,10 @@ class Operand a where
 instance Operand Name where
   mkOperand (F.ResolvedName n _ l) =
     ((if l == F.GlobalRef
-      then L.ConstantOperand . L.GlobalReference
-      else L.LocalReference ) . L.Name) n
+      then L.ConstantOperand . (L.GlobalReference (L.FloatingPointType 64 L.IEEE))
+      else L.LocalReference (L.FloatingPointType 64 L.IEEE)) . L.Name) n
 
 instance Operand ExprResult where
   mkOperand (DoubleResult v) =
     (L.ConstantOperand . L.Float . L.Double) v
-  mkOperand (NamedResult n) = L.LocalReference n
+  mkOperand (NamedResult n) = L.LocalReference (L.FloatingPointType 64 L.IEEE) n

@@ -63,27 +63,27 @@ builtIns = Map.fromList [ (F.ResolvedName "+" () F.GlobalRef, add),
 add :: [ExprResult] -> GenM (L.Named L.Instruction, ExprResult)
 add (left:right:[]) = do
   name <- newName
-  return (name := L.FAdd (mkOperand left) (mkOperand right) [],
+  return (name := L.FAdd L.NoFastMathFlags (mkOperand left) (mkOperand right) [],
           NamedResult name)
 
 
 sub :: [ExprResult] -> GenM (L.Named L.Instruction, ExprResult)
 sub (left:right:[]) = do
   name <- newName
-  return (name := L.FSub (mkOperand left) (mkOperand right) [],
+  return (name := L.FSub L.NoFastMathFlags (mkOperand left) (mkOperand right) [],
           NamedResult name)
 
 
 mul :: [ExprResult] -> GenM (L.Named L.Instruction, ExprResult)
 mul (left:right:[]) = do
   name <- newName
-  return (name := L.FMul (mkOperand left) (mkOperand right) [],
+  return (name := L.FMul L.NoFastMathFlags (mkOperand left) (mkOperand right) [],
           NamedResult name)
 
 
 div :: [ExprResult] -> GenM (L.Named L.Instruction, ExprResult)
 div (left:right:[]) = do
   name <- newName
-  return (name := L.FDiv (mkOperand left) (mkOperand right) [],
+  return (name := L.FDiv L.NoFastMathFlags (mkOperand left) (mkOperand right) [],
           NamedResult name)
 

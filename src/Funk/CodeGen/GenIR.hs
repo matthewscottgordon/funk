@@ -86,7 +86,7 @@ bodyIR body = do
     mkResult (DoubleResult v) =
       (L.Do(L.Ret(Just(L.ConstantOperand(L.Float(L.Double v)))) [] ))
     mkResult (NamedResult n) =
-      (L.Do (L.Ret (Just (L.LocalReference n)) [] ))
+      (L.Do(L.Ret(Just (L.LocalReference (L.FloatingPointType 64 L.IEEE) n)) []))
 
 
 exprIR :: F.Expr (F.ResolvedName ())

@@ -33,6 +33,8 @@ tests = testGroup "Lexer Tests"  [
     testSingleToken "(" OpenParen,
     testSingleToken ")" CloseParen,
     testSingleToken "\n" Eol,
+    testSingleToken "::" TypeOp,
+    testSingleToken "->" ToOp,
     testGroup "Float Literals" [
       testSingleToken "1" (FloatLiteral 1),
       testSingleToken "0" (FloatLiteral 0),
@@ -53,6 +55,10 @@ tests = testGroup "Lexer Tests"  [
                       (Id "quiteLongCamelCaseIdentifier"),
       testSingleToken "another_quite_long_identifier"
                       (Id "another_quite_long_identifier")],
+    testGroup "Type Identifiers" [
+      testSingleToken "Double" (TypeId "Double"),
+      testSingleToken "Int" (TypeId "Int"),
+      testSingleToken "String" (TypeId "String") ],
     testGroup "Operators in parentheses" [
       testSingleToken "(+)" (Id "+"),
       testSingleToken "(/)" (Id "/"),

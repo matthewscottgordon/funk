@@ -15,17 +15,23 @@ limitations under the License.
 
 module Funk.AST where
 
-data Module name = Module [Def name]
+data Module name = Module [Decl name] [Def name]
                  deriving Show
 
+data Decl name = Decl name Type
+                 deriving (Eq, Show)
+
+data Type = TypeName String
+          | FuncType Type Type
+            deriving (Eq, Show)
+
 data Def name = Def (name) [name] (Expr name)
-              | ForeignDef (name) [name] (name)
-              deriving (Eq, Show)
+                deriving (Eq, Show)
 
 data Expr name = FloatLiteral Double
                | Call (name) [Expr name]
                | Op (name) (Expr name) (Expr name)
                | VarRef (name)
-               deriving (Eq, Show)
+                 deriving (Eq, Show)
 
 

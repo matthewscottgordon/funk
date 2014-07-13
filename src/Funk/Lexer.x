@@ -37,6 +37,7 @@ $eol         = \n
 $white_no_nl = $white # $eol
 
 @identifier = $alpha_lower $id_char*
+@typeIdentifier = $alpha_upper $id_char*
 @op1 = [\*\/\%]
 @op2 = [\+\-]
 @op3 = [\<\>]|\<\=|\>\=
@@ -50,7 +51,10 @@ tokens :-
   "foreign"                       {mkToken (\_ -> KeywordForeign)}
   $digit+ ("." $digit+)?          { mkToken (\s -> FloatLiteral (read s)) }
   @identifier                     { mkToken Id }
+  @typeIdentifier                 { mkToken TypeId }
   "="                             { mkToken (\_ -> DefOp) }
+  "::"                            { mkToken (\_ -> TypeOp) }
+  "->"                            { mkToken (\_ -> ToOp) }
   "(" $op_char+ ")"               { mkToken (Id . init . tail) }
   @op1                            { mkToken (Op 1) }
   @op2                            { mkToken (Op 2) }
@@ -75,7 +79,10 @@ data Posn = Posn Int Int Int
 data Token = FloatLiteral Double
            | KeywordForeign
            | DefOp
+           | TypeOp
+           | ToOp
            | Id String
+           | TypeId String
            | Op Integer String
            | OpenParen
            | CloseParen

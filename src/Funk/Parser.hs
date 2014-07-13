@@ -34,6 +34,8 @@ import Control.Applicative ((<$>))
 import Data.Either (partitionEithers)
 import Control.Monad.Error
 
+import Debug.Trace
+
 
 type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
 --token :: (tok -> String) -> (tok -> SourcePos) -> (tok -> Maybe a)
@@ -56,10 +58,25 @@ defOp = token $ \tok -> case tok of
   Lex.DefOp -> Just ()
   _         -> Nothing
 
+typeOp :: Parser ()
+typeOp = token $ \tok -> case tok of
+  Lex.TypeOp -> Just ()
+  _          -> Nothing
+
+toOp :: Parser ()
+toOp = token $ \tok -> case tok of
+  Lex.ToOp -> Just ()
+  _        -> Nothing
+
 identifier :: Parser String
 identifier = token $ \tok -> case tok of
   Lex.Id s -> Just s
   _          -> Nothing
+
+typeId :: Parser String
+typeId = token $ \tok -> case tok of
+  Lex.TypeId s -> Just s
+  _            -> Nothing
 
 op :: Integer -> Parser String
 op precedence = token $ \tok -> case tok of
@@ -96,14 +113,31 @@ parse = (convertError .) . parse'
 parse' :: String -> String -> Either ParseError (Module RawName)
 parse' filename input = Parsec.parse module' filename (Lex.lex input)
 
+
 module' :: Parser (Module RawName)
-module' = Module <$> manyTill def' eof
+module' = (uncurry Module . partitionEithers) <$> manyTill declOrDef eof
 
+declOrDef :: Parser (Either (Decl RawName) (Def RawName))
+declOrDef = do
+  n <- rawName <$> identifier
+  (Left <$> decl n) <|> (Right <$> def n)
 
--- Def' -> Def | ForeignDef
-def' :: Parser (Def RawName)
-def' = def <|> foreignDef
+decl :: RawName -> Parser (Decl RawName)
+decl n = do
+  typeOp
+  r <- Decl n <$> typeExpr
+  eol
+  return r
 
+typeExpr :: Parser Type
+typeExpr = do
+  t <- TypeName <$> typeId
+  typeExpr' t <|> return t
+
+typeExpr' :: Type -> Parser Type
+typeExpr' t = do
+  toOp
+  FuncType t <$> typeExpr
 
 -- ParamList -> identifier ParamList
 -- ParamList -> 
@@ -111,22 +145,9 @@ paramList :: Parser [RawName]
 paramList = fmap rawName <$> (many identifier)
 
 
--- ForeignDef -> "keywordForeign identifier ParamList defOp Expr
-foreignDef :: Parser (Def RawName)
-foreignDef = do
-  keywordForeign
-  n <- rawName <$> identifier
-  params <- paramList
-  defOp
-  n' <- rawName <$> identifier
-  eol
-  return (ForeignDef n params n')
-  
-
 -- Def -> identifier ParamList defOp Expr
-def :: Parser (Def RawName)
-def = do
-  n <- rawName <$> identifier
+def :: RawName -> Parser (Def RawName)
+def n = do
   params <- paramList
   defOp
   e <- expr

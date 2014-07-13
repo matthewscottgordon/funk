@@ -30,10 +30,10 @@ tests :: Test.Framework.Test
 tests = testGroup "Parser Tests"  [
           testCase "Basic" testParserBasic,
           testCase "Prefix Ops" testPrefixOp,
-          testCase "Foreign Functions" testForeignFunctions,
-          testCase "More Functions" testMixedForeignAndRegularFunc,
+          testCase "More Functions" testFunc,
           testCase "Basic Ops" testOpsBasic,
-          testCase "Combined Ops and Functions" testOpsAndFunctions
+          testCase "Combined Ops and Functions" testOpsAndFunctions,
+          testCase "Declarations" testDeclarations
         ]
 
 checkList :: (Show a, Eq a) => String -> [a] -> [a] -> Assertion
@@ -44,15 +44,16 @@ checkList s ds ds' = do
 
 
 parseAndCheck :: String -> (Module RawName) -> Assertion
-parseAndCheck input (Module expectedDefs) = do
+parseAndCheck input (Module expectedDecls expectedDefs) = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
-    Right (Module defs) -> do
+    Right (Module decls defs) -> do
       checkList "Def" expectedDefs defs
+      checkList "Decl" expectedDecls decls
 
     
 testParserBasic :: Assertion
-testParserBasic = parseAndCheck input (Module expectedDefs)
+testParserBasic = parseAndCheck input (Module [] expectedDefs)
   where
     input = "foo a b = add a b 3\n\
             \bar = foo 1 2\n\
@@ -69,7 +70,7 @@ testParserBasic = parseAndCheck input (Module expectedDefs)
         [VarRef (rawName "bar"), VarRef (rawName "bar")]) ]
 
 testPrefixOp :: Assertion
-testPrefixOp = parseAndCheck input (Module expectedDefs)
+testPrefixOp = parseAndCheck input (Module [] expectedDefs)
   where
     input = "foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
@@ -81,24 +82,12 @@ testPrefixOp = parseAndCheck input (Module expectedDefs)
         (Call (rawName "<$>")
           [FloatLiteral 1, FloatLiteral 2]) ]
 
-testForeignFunctions :: Assertion
-testForeignFunctions = parseAndCheck input (Module expectedFDefs)
-  where
-    input = "foreign sin theta = sin\n\
-            \foreign arcTan2 y x = atan2\n"
-    expectedFDefs = [
-      ForeignDef (rawName "sin") [rawName "theta"] (rawName "sin"),
-      ForeignDef (rawName "arcTan2") [rawName "y", rawName "x"]
-                 (rawName "atan2")]
-
-testMixedForeignAndRegularFunc :: Assertion
-testMixedForeignAndRegularFunc = parseAndCheck input (Module defs)
+testFunc :: Assertion
+testFunc = parseAndCheck input (Module [] defs)
   where
     input = "foo a b = add a b 3\n\
             \bar = foo 1 2\n\
             \baz = foo bar bar\n\
-            \foreign sin theta = sin\n\
-            \foreign arcTan2 y x = atan2\n\
             \foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
     defs = [
@@ -111,9 +100,6 @@ testMixedForeignAndRegularFunc = parseAndCheck input (Module defs)
       Def (rawName "baz") []
        (Call (rawName "foo")
         [VarRef (rawName "bar"), VarRef (rawName "bar")]),
-      ForeignDef (rawName "sin") [rawName "theta"] (rawName "sin"),
-      ForeignDef (rawName "arcTan2") [rawName "y", rawName "x"]
-                 (rawName "atan2"),
       Def (rawName "foo") [rawName "a", rawName "b"]
        (Call (rawName "+")
         [VarRef (rawName "a"), VarRef (rawName "b")]),
@@ -122,7 +108,7 @@ testMixedForeignAndRegularFunc = parseAndCheck input (Module defs)
         [FloatLiteral 1, FloatLiteral 2])]
 
 testOpsBasic :: Assertion
-testOpsBasic = parseAndCheck input (Module defs)
+testOpsBasic = parseAndCheck input (Module [] defs)
   where
     input = "bind a b = a >>= b\n\
             \equal3 one two three = one == two == three\n\
@@ -166,7 +152,7 @@ testOpsBasic = parseAndCheck input (Module defs)
 
 
 testOpsAndFunctions :: Assertion
-testOpsAndFunctions = parseAndCheck input (Module defs)
+testOpsAndFunctions = parseAndCheck input (Module [] defs)
   where
     input = "f = g a * b\n\
             \f' = g' a (*) b\n"
@@ -179,3 +165,20 @@ testOpsAndFunctions = parseAndCheck input (Module defs)
         [VarRef (rawName "a"), VarRef (rawName "*"),
                              VarRef (rawName "b")])]
         
+testDeclarations :: Assertion
+testDeclarations = parseAndCheck input (Module decls [])
+  where
+    input = "foo :: Double -> Double -> Double\n\
+            \bar :: String -> Integer\n\
+            \pi :: Double\n"
+    decls = [ Decl (rawName "foo")
+                       (FuncType
+                        (TypeName "Double")
+                        (FuncType
+                         (TypeName "Double")
+                         (TypeName "Double"))),
+              Decl (rawName "bar")
+                       (FuncType
+                        (TypeName "String")
+                        (TypeName "Integer")),
+              Decl (rawName "pi") (TypeName "Double") ]

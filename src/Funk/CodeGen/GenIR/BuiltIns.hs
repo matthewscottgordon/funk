@@ -33,7 +33,7 @@ import LLVM.General.AST (Named((:=)))
 import qualified Data.Map.Strict as Map
 
 instance Ord Name where
-  compare (F.ResolvedName ln _ ll) (F.ResolvedName rn _ rl) =
+  compare (F.ResolvedName ln ll) (F.ResolvedName rn rl) =
     if ln > rn then GT
     else if ln < rn then LT
            else locationOrder ll rl
@@ -54,10 +54,10 @@ getBuiltIn = flip Map.lookup builtIns
 
 builtIns :: Map.Map Name
             ([ExprResult] -> GenM (L.Named L.Instruction, ExprResult))
-builtIns = Map.fromList [ (F.ResolvedName "+" () F.GlobalRef, add),
-                          (F.ResolvedName "-" () F.GlobalRef, sub),
-                          (F.ResolvedName "*" () F.GlobalRef, mul),
-                          (F.ResolvedName "/" () F.GlobalRef, div) ]
+builtIns = Map.fromList [ (F.ResolvedName "+" F.GlobalRef, add),
+                          (F.ResolvedName "-" F.GlobalRef, sub),
+                          (F.ResolvedName "*" F.GlobalRef, mul),
+                          (F.ResolvedName "/" F.GlobalRef, div) ]
 
 
 add :: [ExprResult] -> GenM (L.Named L.Instruction, ExprResult)

@@ -17,12 +17,11 @@ limitations under the License.
 
 module Funk.Parser
        ( parse,
-         RawName
        ) where
 
 import Funk.AST
 import qualified Funk.Lexer as Lex
-import Funk.Names (RawName,rawName,UnresolvedName(..))
+import Funk.Names (UnresolvedName(..))
 
 import qualified Text.Parsec as Parsec
 import qualified Text.Parsec.String
@@ -104,25 +103,25 @@ keywordForeign = token $ \tok -> case tok of
   _                  -> Nothing
 
 
-parse :: MonadError String m => String -> String -> m (Module RawName)
+parse :: MonadError String m => String -> String -> m (Module UnresolvedName)
 parse = (convertError .) . parse'
   where
     convertError (Right r) = return r
     convertError (Left e) = fail (show e)
 
-parse' :: String -> String -> Either ParseError (Module RawName)
+parse' :: String -> String -> Either ParseError (Module UnresolvedName)
 parse' filename input = Parsec.parse module' filename (Lex.lex input)
 
 
-module' :: Parser (Module RawName)
+module' :: Parser (Module UnresolvedName)
 module' = (uncurry Module . partitionEithers) <$> manyTill declOrDef eof
 
-declOrDef :: Parser (Either (Decl RawName) (Def RawName))
+declOrDef :: Parser (Either (Decl UnresolvedName) (Def UnresolvedName))
 declOrDef = do
-  n <- rawName <$> identifier
+  n <- UnresolvedName <$> identifier
   (Left <$> decl n) <|> (Right <$> def n)
 
-decl :: RawName -> Parser (Decl RawName)
+decl :: UnresolvedName -> Parser (Decl UnresolvedName)
 decl n = do
   typeOp
   r <- Decl n <$> typeExpr
@@ -141,12 +140,12 @@ typeExpr' t = do
 
 -- ParamList -> identifier ParamList
 -- ParamList -> 
-paramList :: Parser [RawName]
-paramList = fmap rawName <$> (many identifier)
+paramList :: Parser [UnresolvedName]
+paramList = fmap UnresolvedName <$> (many identifier)
 
 
 -- Def -> identifier ParamList defOp Expr
-def :: RawName -> Parser (Def RawName)
+def :: UnresolvedName -> Parser (Def UnresolvedName)
 def n = do
   params <- paramList
   defOp
@@ -207,41 +206,41 @@ def n = do
 --
 -----------------------------------------------------------------
 
-expr :: Parser (Expr RawName)
+expr :: Parser (Expr UnresolvedName)
 expr = opExpr lowestOperatorPrecedence
   where
     lowestOperatorPrecedence = 7
 
-opExpr :: Integer -> Parser (Expr RawName)
+opExpr :: Integer -> Parser (Expr UnresolvedName)
 opExpr precedence = do
   e <- if precedence > 1 then opExpr (precedence-1) else funcExpr
   opExpr' precedence e <|> return e
   
-opExpr' :: Integer -> (Expr RawName) -> Parser (Expr RawName)
+opExpr' :: Integer -> (Expr UnresolvedName) -> Parser (Expr UnresolvedName)
 opExpr' precedence left = do
-  n <- rawName <$> op precedence
+  n <- UnresolvedName <$> op precedence
   right <- if precedence > 1 then opExpr (precedence-1) else funcExpr
   let e = Op n left right
   opExpr' precedence e <|> return e
 
-funcExpr :: Parser (Expr RawName)
+funcExpr :: Parser (Expr UnresolvedName)
 funcExpr = idExpr <|> atomicExpr
 
-idExpr :: Parser (Expr RawName)
+idExpr :: Parser (Expr UnresolvedName)
 idExpr = do
-  n <- rawName <$> identifier
+  n <- UnresolvedName <$> identifier
   funcCall n <|> return (VarRef n)
 
-funcCall :: RawName -> Parser (Expr RawName)
+funcCall :: UnresolvedName -> Parser (Expr UnresolvedName)
 funcCall n = Call n <$> many1 argExpr
 
-argExpr :: Parser (Expr RawName)
-argExpr = ((VarRef . rawName) <$> identifier) <|> atomicExpr
+argExpr :: Parser (Expr UnresolvedName)
+argExpr = ((VarRef . UnresolvedName) <$> identifier) <|> atomicExpr
 
-atomicExpr :: Parser (Expr RawName)
+atomicExpr :: Parser (Expr UnresolvedName)
 atomicExpr = parenExpr <|> (FloatLiteral <$> floatLiteral)
 
-parenExpr :: Parser (Expr RawName)
+parenExpr :: Parser (Expr UnresolvedName)
 parenExpr = do
   openParen
   r <- expr

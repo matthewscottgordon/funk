@@ -16,26 +16,19 @@ limitations under the License.
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
 
 module Funk.Names
-       ( RawName,
-         rawName,
-         UnresolvedName(..),
+       ( UnresolvedName(..),
          ResolvedName(..),
          Location(..)
        ) where
 
 
-data UnresolvedName a = UnresolvedName String a
+data UnresolvedName = UnresolvedName String
                       deriving (Show, Eq)
-data ResolvedName a = ResolvedName String a Location
+data ResolvedName = ResolvedName String Location
                     deriving (Show, Eq)
 
 data Location = ModuleRef String
               | FunctionParamRef String
               | GlobalRef
               deriving (Show, Eq)
-
-type RawName = UnresolvedName ()
-
-rawName :: String -> RawName
-rawName s = UnresolvedName s ()
 

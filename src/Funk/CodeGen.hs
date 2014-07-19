@@ -28,7 +28,7 @@ import LLVM.General.Context (withContext, Context)
 import Control.Monad.Error
 
 
-showLLVM :: Module (ResolvedName ()) -> ErrorT String IO String
+showLLVM :: Module ResolvedName -> ErrorT String IO String
 showLLVM m = do
   let ir = genIR m
   withContext' $ \c ->

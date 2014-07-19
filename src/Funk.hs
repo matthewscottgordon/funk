@@ -66,7 +66,7 @@ main' (Options _ (Opt.Executable _)) = liftIO $ putStrLn "Executable"
 openSource :: Opt.Input -> ErrorT String IO Handle
 openSource (Opt.Source filename) = liftIO $ openFile filename ReadMode
 
-compile :: MonadError String m => String -> m (Module (ResolvedName ()))
+compile :: MonadError String m => String -> m (Module ResolvedName)
 compile input =
   Funk.Parser.parse "<stdin>" input >>= Funk.Renamer.rename
 

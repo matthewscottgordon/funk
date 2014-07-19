@@ -35,7 +35,7 @@ import Control.Monad.State
 
 data ExprResult = DoubleResult Double | NamedResult L.Name
 
-type Name = F.ResolvedName ()
+type Name = F.ResolvedName
 
 data GenState = GenState Word
 type GenM a = State GenState a
@@ -50,7 +50,7 @@ class Operand a where
   mkOperand :: a -> L.Operand
 
 instance Operand Name where
-  mkOperand (F.ResolvedName n _ l) =
+  mkOperand (F.ResolvedName n l) =
     ((if l == F.GlobalRef
       then L.ConstantOperand . (L.GlobalReference (L.FloatingPointType 64 L.IEEE))
       else L.LocalReference (L.FloatingPointType 64 L.IEEE)) . L.Name) n

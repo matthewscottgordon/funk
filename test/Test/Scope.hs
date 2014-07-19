@@ -52,8 +52,8 @@ instance ScopedName DummyName DummyScope where
   scopedName = DummyName-}
 
 
-foo = UnresolvedName "foo" ()
-foo' = ResolvedName "foo" () GlobalRef
+foo = UnresolvedName "foo"
+foo' = ResolvedName "foo" GlobalRef
 
 storeAndFindOneName :: Test
 storeAndFindOneName = testCase "Store and find one name" $
@@ -62,8 +62,8 @@ storeAndFindOneName = testCase "Store and find one name" $
     (findName (addNameToScope createGlobalScope foo) "foo")
     (Just foo')
 
-bar = UnresolvedName "bar" ()
-bar' = ResolvedName "bar" () GlobalRef
+bar = UnresolvedName "bar"
+bar' = ResolvedName "bar" GlobalRef
 
 storeAndFindTwoNames :: Test
 storeAndFindTwoNames = testCase "Store and find two names" $ do
@@ -77,7 +77,7 @@ storeAndFindTwoNames = testCase "Store and find two names" $ do
     (findName td "bar")
     (Just bar')
 
-baz = UnresolvedName "baz" ()
+baz = UnresolvedName "baz"
 
 undefinedNameIsNotFound :: Test
 undefinedNameIsNotFound = testCase "Undefined name is not found" $
@@ -85,8 +85,8 @@ undefinedNameIsNotFound = testCase "Undefined name is not found" $
       expected = Nothing
   in assertEqual "Found name" (findName td "baz") expected
      
-qux = UnresolvedName "qux" ()
-quux = UnresolvedName "quux" ()
+qux = UnresolvedName "qux"
+quux = UnresolvedName "quux"
 
 findItemInOuterScope :: Test
 findItemInOuterScope = testCase "Find item in outer scope" $
@@ -99,7 +99,7 @@ findItemInOuterScope = testCase "Find item in outer scope" $
      (findName td "bar")
      (Just bar')
      
-qux' = ResolvedName "qux" () (FunctionParamRef "func")
+qux' = ResolvedName "qux" (FunctionParamRef "func")
 
 findItemInInnerScope :: Test
 findItemInInnerScope = testCase "Find item in inner scope" $
@@ -112,8 +112,8 @@ findItemInInnerScope = testCase "Find item in inner scope" $
      (findName td "qux")
      (Just qux')
 
-bar2 = UnresolvedName "bar" ()
-bar2' = ResolvedName "bar" () (FunctionParamRef "func")
+bar2 = UnresolvedName "bar"
+bar2' = ResolvedName "bar" (FunctionParamRef "func")
 
 innerScopeOverridesOuter :: Test
 innerScopeOverridesOuter = testCase "Inner scope overrides outer" $

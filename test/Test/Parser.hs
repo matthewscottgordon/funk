@@ -43,7 +43,7 @@ checkList s ds ds' = do
     assertEqual ("For " ++ s ++ " "++ (show l) ++ ":") d d'
 
 
-parseAndCheck :: String -> (Module RawName) -> Assertion
+parseAndCheck :: String -> (Module UnresolvedName) -> Assertion
 parseAndCheck input (Module expectedDecls expectedDefs) = do
   case Funk.Parser.parse "<testdata>" input of
     Left e -> assertFailure (show e)
@@ -59,15 +59,15 @@ testParserBasic = parseAndCheck input (Module [] expectedDefs)
             \bar = foo 1 2\n\
             \baz = foo bar bar\n"
     expectedDefs = [
-      Def (rawName "foo") [rawName "a", rawName "b"]
-       (Call (rawName "add")
-        [VarRef (rawName "a"), VarRef (rawName "b"), FloatLiteral 3]),
-      Def (rawName "bar") []
-       (Call (rawName "foo")
+      Def (UnresolvedName "foo") [UnresolvedName "a", UnresolvedName "b"]
+       (Call (UnresolvedName "add")
+        [VarRef (UnresolvedName "a"), VarRef (UnresolvedName "b"), FloatLiteral 3]),
+      Def (UnresolvedName "bar") []
+       (Call (UnresolvedName "foo")
         [FloatLiteral 1, FloatLiteral 2]),
-      Def (rawName "baz") []
-       (Call (rawName "foo")
-        [VarRef (rawName "bar"), VarRef (rawName "bar")]) ]
+      Def (UnresolvedName "baz") []
+       (Call (UnresolvedName "foo")
+        [VarRef (UnresolvedName "bar"), VarRef (UnresolvedName "bar")]) ]
 
 testPrefixOp :: Assertion
 testPrefixOp = parseAndCheck input (Module [] expectedDefs)
@@ -75,11 +75,11 @@ testPrefixOp = parseAndCheck input (Module [] expectedDefs)
     input = "foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
     expectedDefs = [
-      Def (rawName "foo") [rawName "a", rawName "b"]
-        (Call (rawName "+")
-           [VarRef (rawName "a"), VarRef (rawName "b")]),
-      Def (rawName "bar") []
-        (Call (rawName "<$>")
+      Def (UnresolvedName "foo") [UnresolvedName "a", UnresolvedName "b"]
+        (Call (UnresolvedName "+")
+           [VarRef (UnresolvedName "a"), VarRef (UnresolvedName "b")]),
+      Def (UnresolvedName "bar") []
+        (Call (UnresolvedName "<$>")
           [FloatLiteral 1, FloatLiteral 2]) ]
 
 testFunc :: Assertion
@@ -91,20 +91,20 @@ testFunc = parseAndCheck input (Module [] defs)
             \foo a b = (+) a b\n\
             \bar = (<$>) 1 2\n"
     defs = [
-      Def (rawName "foo") [rawName "a", rawName "b"]
-       (Call (rawName "add")
-        [VarRef (rawName "a"), VarRef (rawName "b"), FloatLiteral 3]),
-      Def (rawName "bar") []
-       (Call (rawName "foo")
+      Def (UnresolvedName "foo") [UnresolvedName "a", UnresolvedName "b"]
+       (Call (UnresolvedName "add")
+        [VarRef (UnresolvedName "a"), VarRef (UnresolvedName "b"), FloatLiteral 3]),
+      Def (UnresolvedName "bar") []
+       (Call (UnresolvedName "foo")
         [FloatLiteral 1, FloatLiteral 2]),
-      Def (rawName "baz") []
-       (Call (rawName "foo")
-        [VarRef (rawName "bar"), VarRef (rawName "bar")]),
-      Def (rawName "foo") [rawName "a", rawName "b"]
-       (Call (rawName "+")
-        [VarRef (rawName "a"), VarRef (rawName "b")]),
-      Def (rawName "bar") []
-       (Call (rawName "<$>")
+      Def (UnresolvedName "baz") []
+       (Call (UnresolvedName "foo")
+        [VarRef (UnresolvedName "bar"), VarRef (UnresolvedName "bar")]),
+      Def (UnresolvedName "foo") [UnresolvedName "a", UnresolvedName "b"]
+       (Call (UnresolvedName "+")
+        [VarRef (UnresolvedName "a"), VarRef (UnresolvedName "b")]),
+      Def (UnresolvedName "bar") []
+       (Call (UnresolvedName "<$>")
         [FloatLiteral 1, FloatLiteral 2])]
 
 testOpsBasic :: Assertion
@@ -116,38 +116,38 @@ testOpsBasic = parseAndCheck input (Module [] defs)
             \bar a b c = a + b * c\n\
             \foo qw er = er + 1 * 2 / qw - 1234.56\n"
     defs = [
-      Def (rawName "bind") [rawName "a", rawName "b"]
-        (Op (rawName ">>=")
-          (VarRef (rawName "a"))
-          (VarRef (rawName "b"))),
-      Def (rawName "equal3")
-          [rawName "one", rawName "two", rawName "three"]
-        (Op (rawName "==")
-          (Op (rawName "==")
-             (VarRef (rawName "one"))
-             (VarRef (rawName "two")))
-          (VarRef (rawName "three"))),
-      Def (rawName "bar'") [rawName "a", rawName "b", rawName "c"]
-        (Op (rawName "+")
-          (Op (rawName "*")
-            (VarRef (rawName "b"))
-            (VarRef (rawName "c")))
-          (VarRef (rawName "a"))),
-      Def (rawName "bar") [rawName "a", rawName "b", rawName "c"]
-        (Op (rawName "+")
-          (VarRef (rawName "a"))
-          (Op (rawName "*")
-            (VarRef (rawName "b"))
-            (VarRef (rawName "c")))),
-      Def (rawName "foo") [rawName "qw", rawName "er"]
-        (Op (rawName "-")
-          (Op (rawName "+")
-            (VarRef (rawName "er"))
-            (Op (rawName "/")
-              (Op (rawName "*")
+      Def (UnresolvedName "bind") [UnresolvedName "a", UnresolvedName "b"]
+        (Op (UnresolvedName ">>=")
+          (VarRef (UnresolvedName "a"))
+          (VarRef (UnresolvedName "b"))),
+      Def (UnresolvedName "equal3")
+          [UnresolvedName "one", UnresolvedName "two", UnresolvedName "three"]
+        (Op (UnresolvedName "==")
+          (Op (UnresolvedName "==")
+             (VarRef (UnresolvedName "one"))
+             (VarRef (UnresolvedName "two")))
+          (VarRef (UnresolvedName "three"))),
+      Def (UnresolvedName "bar'") [UnresolvedName "a", UnresolvedName "b", UnresolvedName "c"]
+        (Op (UnresolvedName "+")
+          (Op (UnresolvedName "*")
+            (VarRef (UnresolvedName "b"))
+            (VarRef (UnresolvedName "c")))
+          (VarRef (UnresolvedName "a"))),
+      Def (UnresolvedName "bar") [UnresolvedName "a", UnresolvedName "b", UnresolvedName "c"]
+        (Op (UnresolvedName "+")
+          (VarRef (UnresolvedName "a"))
+          (Op (UnresolvedName "*")
+            (VarRef (UnresolvedName "b"))
+            (VarRef (UnresolvedName "c")))),
+      Def (UnresolvedName "foo") [UnresolvedName "qw", UnresolvedName "er"]
+        (Op (UnresolvedName "-")
+          (Op (UnresolvedName "+")
+            (VarRef (UnresolvedName "er"))
+            (Op (UnresolvedName "/")
+              (Op (UnresolvedName "*")
                 (FloatLiteral 1)
                 (FloatLiteral 2))
-              (VarRef (rawName "qw"))))
+              (VarRef (UnresolvedName "qw"))))
           (FloatLiteral 1234.56))]
 
 
@@ -157,13 +157,13 @@ testOpsAndFunctions = parseAndCheck input (Module [] defs)
     input = "f = g a * b\n\
             \f' = g' a (*) b\n"
     defs = [
-      Def (rawName "f") []
-        (Op (rawName "*")
-          (Call (rawName "g") [VarRef (rawName "a")])
-          (VarRef (rawName "b"))),
-      Def (rawName "f'") [] (Call (rawName "g'")
-        [VarRef (rawName "a"), VarRef (rawName "*"),
-                             VarRef (rawName "b")])]
+      Def (UnresolvedName "f") []
+        (Op (UnresolvedName "*")
+          (Call (UnresolvedName "g") [VarRef (UnresolvedName "a")])
+          (VarRef (UnresolvedName "b"))),
+      Def (UnresolvedName "f'") [] (Call (UnresolvedName "g'")
+        [VarRef (UnresolvedName "a"), VarRef (UnresolvedName "*"),
+                             VarRef (UnresolvedName "b")])]
         
 testDeclarations :: Assertion
 testDeclarations = parseAndCheck input (Module decls [])
@@ -171,14 +171,14 @@ testDeclarations = parseAndCheck input (Module decls [])
     input = "foo :: Double -> Double -> Double\n\
             \bar :: String -> Integer\n\
             \pi :: Double\n"
-    decls = [ Decl (rawName "foo")
+    decls = [ Decl (UnresolvedName "foo")
                        (FuncType
                         (TypeName "Double")
                         (FuncType
                          (TypeName "Double")
                          (TypeName "Double"))),
-              Decl (rawName "bar")
+              Decl (UnresolvedName "bar")
                        (FuncType
                         (TypeName "String")
                         (TypeName "Integer")),
-              Decl (rawName "pi") (TypeName "Double") ]
+              Decl (UnresolvedName "pi") (TypeName "Double") ]

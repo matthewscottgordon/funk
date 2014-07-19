@@ -41,10 +41,10 @@ import Funk.CodeGen.GenIR.Types
 import Funk.CodeGen.GenIR.BuiltIns (getBuiltIn)
 
 
-showLLVM :: F.Module (F.ResolvedName ()) -> String
+showLLVM :: F.Module F.ResolvedName -> String
 showLLVM = showPretty . genIR
 
-genIR :: F.Module (F.ResolvedName ()) -> L.Module
+genIR :: F.Module F.ResolvedName -> L.Module
 genIR (F.Module _ defs) =
   L.Module "*Module*" Nothing Nothing ds
   where
@@ -56,8 +56,8 @@ genIR (F.Module _ defs) =
 runGen :: GenM a -> a
 runGen act = evalState act (GenState 0)
   
-defIR :: F.Def (F.ResolvedName ()) -> GenM L.Global
-defIR (F.Def (F.ResolvedName n () _)  ps body) = do
+defIR :: F.Def F.ResolvedName -> GenM L.Global
+defIR (F.Def (F.ResolvedName n _)  ps body) = do
   body' <- bodyIR body
   return $ L.Function Linkage.External
                 Visibility.Default
@@ -72,12 +72,12 @@ defIR (F.Def (F.ResolvedName n () _)  ps body) = do
                 Nothing
                 body'
   where params = map param ps
-        param (F.ResolvedName n' _ _) = L.Parameter
+        param (F.ResolvedName n' _) = L.Parameter
                   (L.FloatingPointType 64 L.IEEE)
                   (L.Name n')
                   []
 
-bodyIR :: F.Expr (F.ResolvedName ()) -> GenM [L.BasicBlock]
+bodyIR :: F.Expr F.ResolvedName -> GenM [L.BasicBlock]
 bodyIR body = do
   blockName <- newName
   (b, r) <- exprIR body
@@ -89,15 +89,15 @@ bodyIR body = do
       (L.Do(L.Ret(Just (L.LocalReference (L.FloatingPointType 64 L.IEEE) n)) []))
 
 
-exprIR :: F.Expr (F.ResolvedName ())
+exprIR :: F.Expr F.ResolvedName
           -> GenM ([L.Named L.Instruction], ExprResult)
 exprIR (F.FloatLiteral v) = return ([], DoubleResult v)
 exprIR (F.Call n argExprs) = callIR n argExprs
 exprIR (F.Op n lArgExpr rArgExpr) = callIR n [lArgExpr, rArgExpr]
-exprIR (F.VarRef (F.ResolvedName n _ _)) =
+exprIR (F.VarRef (F.ResolvedName n _)) =
   return ([], NamedResult (L.Name n))
 
-callIR :: F.ResolvedName () -> [F.Expr (F.ResolvedName ())]
+callIR :: F.ResolvedName -> [F.Expr F.ResolvedName]
           -> GenM ([L.Named L.Instruction], ExprResult)
 callIR n argExprs = do
   (argInstructions, args) <- unzip <$> mapM exprIR argExprs

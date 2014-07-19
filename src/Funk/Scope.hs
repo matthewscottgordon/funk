@@ -29,31 +29,31 @@ import Funk.Names (Location(..),
 
 import Data.List (find)
 
-data Scope a = Scope Location [UnresolvedName a] (Scope a)
-             | GlobalScope [UnresolvedName a]
+data Scope = Scope Location [UnresolvedName] (Scope)
+             | GlobalScope [UnresolvedName]
 
 
-createGlobalScope :: Scope a
+createGlobalScope :: Scope
 createGlobalScope = GlobalScope []
 
 
-createScope :: Scope a -> Location  -> Scope a
+createScope :: Scope -> Location  -> Scope
 createScope s l = Scope l [] s
 
 
-addNameToScope :: Scope a -> UnresolvedName a -> Scope a
+addNameToScope :: Scope -> UnresolvedName -> Scope
 addNameToScope (GlobalScope ns) n= GlobalScope (n:ns)
 addNameToScope (Scope l ns s') n = Scope l (n:ns) s'
 
 
-findName :: Scope a -> String -> Maybe (ResolvedName a)
+findName :: Scope -> String -> Maybe (ResolvedName)
 findName (Scope l ns s) n = case (find (hasName n) ns) of
-  Just (UnresolvedName n' a) -> Just (ResolvedName n' a l)
+  Just (UnresolvedName n') -> Just (ResolvedName n' l)
   Nothing -> findName s n
 findName (GlobalScope ns) n = case (find (hasName n) ns) of
-  Just (UnresolvedName n' a) -> Just (ResolvedName n' a GlobalRef)
+  Just (UnresolvedName n') -> Just (ResolvedName n' GlobalRef)
   Nothing -> Nothing
 
 
-hasName :: String -> UnresolvedName a -> Bool
-hasName s (UnresolvedName s' _) = s == s'
+hasName :: String -> UnresolvedName -> Bool
+hasName s (UnresolvedName s') = s == s'

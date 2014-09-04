@@ -20,7 +20,7 @@ executable funk
   main-is:             Funk.hs
   build-tools:         alex
   other-modules:       Funk.Lexer
-  build-depends:       base              ==4.6.*,
+  build-depends:       base              ==4.7.*,
                        mtl               >=2.1.2,
                        array             >=0.4.0.1,
                        containers        >=0.5.0.0,
@@ -35,7 +35,7 @@ test-suite funk-test
   main-is:             Test.hs
   build-tools:         alex
   other-modules:       Funk.Lexer
-  build-depends:       base              ==4.6.*,
+  build-depends:       base              ==4.7.*,
                        mtl               >=2.1.2,
                        array             >=0.4.0.1,
                        containers        >=0.5.0.0,

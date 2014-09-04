@@ -57,3 +57,9 @@ In support of those goals, Funk has these main characteristics:
 The ML family (SML, O'Caml) are the most well-known current
 languages that have these characteristics. I hope Funk can be a new,
 modern language in the same vein.
+
+Building Notes
+==============
+
+* ghci will not work with ghc 4.6, due to issues with llvm-general.
+* When building with ghc 4.8, llvm-general must be built with -fshared-llvm --enable-shared

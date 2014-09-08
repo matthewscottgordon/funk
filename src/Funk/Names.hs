@@ -27,8 +27,22 @@ data UnresolvedName = UnresolvedName String
 data ResolvedName = ResolvedName String Location
                     deriving (Show, Eq)
 
+instance Ord ResolvedName where
+    compare (ResolvedName n1 l1) (ResolvedName n2 l2)
+        = case compare n1 n2 of
+            LT -> LT
+            EQ -> compare l1 l2
+            GT -> GT
+
 data Location = ModuleRef String
               | FunctionParamRef String
               | GlobalRef
               deriving (Show, Eq)
 
+instance Ord Location where
+    compare (FunctionParamRef n1) (FunctionParamRef n2) = compare n1 n2
+    compare (FunctionParamRef _) _                      = GT
+    compare (ModuleRef s1) (ModuleRef s2)               = compare s1 s2
+    compare (ModuleRef _) _                             = GT
+    compare GlobalRef GlobalRef                         = EQ
+    compare GlobalRef _                                 = GT

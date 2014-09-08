@@ -13,18 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -}
 
-import Test.Framework (defaultMain, Test)
+module Funk.Type (Type,
+                  mkType
+                 ) where
 
-import qualified Test.Lexer
-import qualified Test.Parser
-import qualified Test.Scope
-import qualified Test.Module
+data Type = Type String
+            deriving (Show, Eq)
 
-tests :: [Test]
-tests = [Test.Lexer.tests,
-         Test.Parser.tests,
-         Test.Scope.tests,
-         Test.Module.tests]
-
-main :: IO ()
-main = defaultMain tests
+mkType :: String -> Type
+mkType = Type

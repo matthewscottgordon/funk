@@ -33,6 +33,7 @@ import qualified LLVM.General.AST.CallingConvention
 
 import qualified Funk.AST as F
 import qualified Funk.Names as F
+import qualified Funk.Module as Module
 
 import Control.Monad.State
 import Control.Applicative ((<$>))
@@ -41,16 +42,16 @@ import Funk.CodeGen.GenIR.Types
 import Funk.CodeGen.GenIR.BuiltIns (getBuiltIn)
 
 
-showLLVM :: F.Module F.ResolvedName -> String
+showLLVM :: Module.Module F.ResolvedName -> String
 showLLVM = showPretty . genIR
 
-genIR :: F.Module F.ResolvedName -> L.Module
-genIR (F.Module _ defs) =
+genIR :: Module.Module F.ResolvedName -> L.Module
+genIR m =
   L.Module "*Module*" Nothing Nothing ds
   where
     ds :: [L.Definition]
     ds = runGen $ do
-      llvmDefs <- mapM defIR defs
+      llvmDefs <- mapM defIR (Module.getFunctions m)
       return $ map L.GlobalDefinition llvmDefs
 
 runGen :: GenM a -> a

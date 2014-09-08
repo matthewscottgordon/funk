@@ -20,7 +20,7 @@ module Funk.CodeGen
 
 import Funk.CodeGen.GenIR (genIR)
 import Funk.Names (ResolvedName(..))
-import Funk.AST (Module)
+import Funk.Module
 
 import LLVM.General (moduleLLVMAssembly, withModuleFromAST)
 import LLVM.General.Context (withContext, Context)

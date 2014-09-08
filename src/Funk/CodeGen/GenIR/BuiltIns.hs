@@ -32,20 +32,6 @@ import LLVM.General.AST (Named((:=)))
 
 import qualified Data.Map.Strict as Map
 
-instance Ord Name where
-  compare (F.ResolvedName ln ll) (F.ResolvedName rn rl) =
-    if ln > rn then GT
-    else if ln < rn then LT
-           else locationOrder ll rl
-    where
-      locationOrder F.GlobalRef      F.GlobalRef      = EQ
-      locationOrder F.GlobalRef      _                = LT
-      locationOrder _                F.GlobalRef      = GT
-      locationOrder (F.ModuleRef lm) (F.ModuleRef rm) = compare lm rm
-      locationOrder (F.ModuleRef _)  _                = LT
-      locationOrder _                (F.ModuleRef _)  = GT
-      locationOrder _                _                = EQ
-  
 
 getBuiltIn ::
   Name ->

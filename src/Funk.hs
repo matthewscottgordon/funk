@@ -18,7 +18,8 @@ limitations under the License.
 import qualified Funk.Options as Opt
 import Funk.Options (parseOpts, Options(..))
 import Funk.Names
-import Funk.AST
+import Funk.AST as AST
+import Funk.Module as Module
 import Funk.Parser
 import Funk.Renamer
 import Funk.CodeGen
@@ -66,7 +67,7 @@ main' (Options _ (Opt.Executable _)) = liftIO $ putStrLn "Executable"
 openSource :: Opt.Input -> ErrorT String IO Handle
 openSource (Opt.Source filename) = liftIO $ openFile filename ReadMode
 
-compile :: MonadError String m => String -> m (Module ResolvedName)
+compile :: MonadError String m => String -> m (Module.Module ResolvedName)
 compile input =
-  Funk.Parser.parse "<stdin>" input >>= Funk.Renamer.rename
+  Funk.Parser.parse "<stdin>" input >>= Funk.Renamer.rename >>= Funk.Renamer.collect
 

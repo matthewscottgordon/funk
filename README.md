@@ -7,9 +7,9 @@ evaluation
 At this point, Funk is primarily a vehicle for me (Matt Gordon) to
 experiment with language design and learn about LLVM, but I do have a
 specific (and hopefully useful) end-goal in mind. In a nutshell, Funk is
-inspired by Haskell, but aims to be more pragmatic and to make it easier
-to reason about not just the correctness of a program but also its
-performance.
+an ML-family language which borrows many features from Haskell. The syntax
+is very similar to Haskell but, like other ML-family languages such as SML
+and OCaml, it uses eager evaluation.
 
 I have these main goals for Funk:
 
@@ -54,9 +54,7 @@ In support of those goals, Funk has these main characteristics:
     confusing for beginners and makes it hard for even advanced
     programmers to optimize.
 
-The ML family (SML, O'Caml) are the most well-known current
-languages that have these characteristics. I hope Funk can be a new,
-modern language in the same vein.
+
 
 Building Notes
 ==============

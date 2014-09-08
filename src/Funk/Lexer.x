@@ -94,7 +94,7 @@ mkToken :: (String -> Token) -> AlexPosn -> String -> (Posn, Token)
 mkToken f (AlexPn a l c) s = ((Posn a l c), f s)
 
 mkToken' :: String -> (String -> Token) -> AlexPosn -> String -> (Posn, Token)
-mkToken' n f (AlexPn a l c) s = ((Posn a l c), f (trace (n ++ "(" ++ s ++ ")") s))
+mkToken' n f (AlexPn a l c) s = ((Posn a l c), f s)
 
 lex :: String -> [(Posn, Token)]
 lex = alexScanTokens

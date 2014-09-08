@@ -26,11 +26,16 @@ import Funk.Names
 
 tests :: Test.Framework.Test
 tests = testGroup "Module Tests"  [
+          testCase "Empty module" testEmptyModule,
           testCase "Add one definition" testAddOneDef,
           testCase "Add multiple definitions" testAddDefs
         ]
 
-    
+
+testEmptyModule :: Assertion
+testEmptyModule = assertEqual "Empty module is not empty."
+                  ([] :: [Def ResolvedName]) (getFunctions empty)
+
 testAddOneDef :: Assertion
 testAddOneDef = assertEqual "Error storing def."
                   [def] (getFunctions (addDef def empty))

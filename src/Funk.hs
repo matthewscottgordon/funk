@@ -29,12 +29,14 @@ import Control.Applicative ((<$>))
 import Control.Monad (forM, forM_)
 
 import System.Environment (getArgs)
-import System.IO ( IOMode(ReadMode),
+import System.IO ( IOMode(ReadMode,WriteMode),
                    Handle,
                    hClose,
                    hGetContents,
                    openFile,
-                   putStrLn )
+                   putStrLn,
+                   hPutStr,
+                   stdout)
 
 main :: IO ()
 main = do
@@ -55,9 +57,13 @@ main' (Options files (Opt.Assembly outFile)) = do
     h <- openSource file
     text <- liftIO $ hGetContents h
     compile file text
+  hOut <- liftIO $ case outFile of
+                     Just file -> openFile file WriteMode
+                     Nothing   -> return stdout
   forM_ asts $ \ast -> do
     llvmIR <- Funk.CodeGen.showLLVM ast
-    liftIO $ putStrLn llvmIR
+    liftIO $ hPutStr hOut llvmIR
+  (liftIO . hClose) hOut
 
 main' (Options _ (Opt.Object _)) = liftIO $ putStrLn "Object"
 

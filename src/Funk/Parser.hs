@@ -38,11 +38,12 @@ import Debug.Trace
 
 type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
 token :: (Lex.Token -> Maybe a) -> Parser a
-token test
-  = Parsec.token showTok posFromTok testTok
+token test = do
+  pos <- Parsec.getPosition
+  Parsec.token showTok (posFromTok (Parsec.sourceName pos)) testTok
   where
     showTok (_, t) = show t
-    posFromTok (Lex.Posn _ l c, _) = newPos "TODO" l c
+    posFromTok srcName (Lex.Posn _ l c, _) = newPos srcName l c
     testTok (_, t) = test t
 
 floatLiteral :: Parser Double
@@ -108,7 +109,8 @@ parse = (convertError .) . parse'
     convertError (Left e) = fail (show e)
 
 parse' :: String -> String -> Either ParseError (Module UnresolvedName)
-parse' filename input = Parsec.parse module' filename (Lex.lex input)
+parse' filename input = 
+    Parsec.parse module' filename (Lex.lex input)
 
 
 module' :: Parser (Module UnresolvedName)

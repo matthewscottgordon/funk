@@ -54,7 +54,7 @@ main' (Options files (Opt.Assembly outFile)) = do
   asts <- forM files $ \file -> do
     h <- openSource file
     text <- liftIO $ hGetContents h
-    compile text
+    compile file text
   forM_ asts $ \ast -> do
     llvmIR <- Funk.CodeGen.showLLVM ast
     liftIO $ putStrLn llvmIR
@@ -67,7 +67,10 @@ main' (Options _ (Opt.Executable _)) = liftIO $ putStrLn "Executable"
 openSource :: Opt.Input -> ErrorT String IO Handle
 openSource (Opt.Source filename) = liftIO $ openFile filename ReadMode
 
-compile :: MonadError String m => String -> m (Module.Module ResolvedName)
-compile input =
-  Funk.Parser.parse "<stdin>" input >>= Funk.Renamer.rename >>= Funk.Renamer.collect
+compile :: MonadError String m =>
+           Opt.Input -> String -> m (Module.Module ResolvedName)
+compile (Opt.Source fileName) input =
+  Funk.Parser.parse fileName input >>=
+  Funk.Renamer.rename >>=
+  Funk.Renamer.collect
 

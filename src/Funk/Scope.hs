@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -}
 
-{-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Funk.Scope
        ( Scope,
@@ -46,11 +46,11 @@ addNameToScope (GlobalScope ns) n= GlobalScope (n:ns)
 addNameToScope (Scope l ns s') n = Scope l (n:ns) s'
 
 
-findName :: Scope -> String -> Maybe (ResolvedName)
-findName (Scope l ns s) n = case (find (hasName n) ns) of
+findName :: Scope -> String -> Maybe ResolvedName
+findName (Scope l ns s) n = case find (hasName n) ns of
   Just (UnresolvedName n') -> Just (ResolvedName n' l)
   Nothing -> findName s n
-findName (GlobalScope ns) n = case (find (hasName n) ns) of
+findName (GlobalScope ns) n = case find (hasName n) ns of
   Just (UnresolvedName n') -> Just (ResolvedName n' GlobalRef)
   Nothing -> Nothing
 

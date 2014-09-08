@@ -63,25 +63,25 @@ data GetOptResult = ParsedOptions [Flag] [String]
 getOpt :: [String] -> GetOptResult
 getOpt = untuple . G.getOpt G.RequireOrder optDescriptions
   where untuple (recognized, files, unrecognized)
-          | length unrecognized > 0 =
-            BadOptions (unrecognizedMsg unrecognized)
-          | elem Help recognized =
-            HelpOption
-          | (elem Compile recognized) && (elem Assemble recognized) =
-            BadOptions "Cannot specify both \"-S\" and \"-c\"."
+          | not (null unrecognized) =
+              BadOptions (unrecognizedMsg unrecognized)
+          | Help `elem` recognized =
+              HelpOption
+          | Compile `elem` recognized && Assemble `elem` recognized =
+              BadOptions "Cannot specify both \"-S\" and \"-c\"."
           | otherwise =
-            ParsedOptions recognized files
-        unrecognizedMsg (s:[]) = "Unrecognized option: \"" ++ s ++ "\"."
+              ParsedOptions recognized files
+        unrecognizedMsg [s] = "Unrecognized option: \"" ++ s ++ "\"."
         unrecognizedMsg ss =
           "Unrecognized options: \"" ++
-          (intercalate "\", \"" ss) ++ "\"."
+          intercalate "\", \"" ss ++ "\"."
 
 mkOutput :: [Flag] -> Output
-mkOutput flags | elem Version flags = PrintVersion
-               | elem Compile flags = Assembly (getOutFile flags)
-               | elem Assemble flags = Object (getOutFile flags)
+mkOutput flags | Version `elem` flags = PrintVersion
+               | Compile `elem`flags = Assembly (getOutFile flags)
+               | Assemble `elem` flags = Object (getOutFile flags)
                | otherwise = Executable (getOutFile flags)
-  where getOutFile ((OutputFile s):_) = Just s
+  where getOutFile (OutputFile s : _) = Just s
         getOutFile (_:rest)           = getOutFile rest
         getOutFile []                 = Nothing
 

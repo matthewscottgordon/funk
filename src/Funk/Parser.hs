@@ -37,14 +37,12 @@ import Debug.Trace
 
 
 type Parser a = Text.Parsec.String.GenParser (Lex.Posn, Lex.Token) () a
---token :: (tok -> String) -> (tok -> SourcePos) -> (tok -> Maybe a)
---         -> GenParser tok st a
 token :: (Lex.Token -> Maybe a) -> Parser a
 token test
   = Parsec.token showTok posFromTok testTok
   where
     showTok (_, t) = show t
-    posFromTok ((Lex.Posn _ l c), _) = newPos "TODO" l c
+    posFromTok (Lex.Posn _ l c, _) = newPos "TODO" l c
     testTok (_, t) = test t
 
 floatLiteral :: Parser Double
@@ -141,7 +139,7 @@ typeExpr' t = do
 -- ParamList -> identifier ParamList
 -- ParamList -> 
 paramList :: Parser [UnresolvedName]
-paramList = fmap UnresolvedName <$> (many identifier)
+paramList = fmap UnresolvedName <$> many identifier
 
 
 -- Def -> identifier ParamList defOp Expr
@@ -216,7 +214,7 @@ opExpr precedence = do
   e <- if precedence > 1 then opExpr (precedence-1) else funcExpr
   opExpr' precedence e <|> return e
   
-opExpr' :: Integer -> (Expr UnresolvedName) -> Parser (Expr UnresolvedName)
+opExpr' :: Integer -> Expr UnresolvedName -> Parser (Expr UnresolvedName)
 opExpr' precedence left = do
   n <- UnresolvedName <$> op precedence
   right <- if precedence > 1 then opExpr (precedence-1) else funcExpr

@@ -71,12 +71,11 @@ renameDef :: MonadError String m => Scope -> AST.Def UnresolvedName ->
 renameDef scope (AST.Def (UnresolvedName fName) ps fBody) = do
   let location = FunctionParamRef fName
       ps' = map paramToRef ps
-      scope' = foldl' addParamToScope (createScope scope location) ps
+      scope' = foldl' addNameToScope (createScope scope location) ps
   fName' <- findName scope fName
   fBody' <- renameExpr scope' fBody
   return (AST.Def fName' ps' fBody')
   where
-    addParamToScope s n = addNameToScope s n
     paramToRef (UnresolvedName n) =
       ResolvedName n (FunctionParamRef fName)
 

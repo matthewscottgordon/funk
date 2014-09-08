@@ -20,12 +20,12 @@ module Funk.CodeGen.GenIR
         showLLVM
        ) where
 
-import LLVM.General.AST (Named((:=)))
+import           LLVM.General.AST (Named((:=)))
 import qualified LLVM.General.AST as L
 import qualified LLVM.General.AST.Constant as L
 import qualified LLVM.General.AST.Float as L
 import qualified LLVM.General.AST.CallingConvention as LLVMCallingConv
-import LLVM.General.PrettyPrint (showPretty)
+import           LLVM.General.PrettyPrint (showPretty)
 import qualified LLVM.General.AST.Linkage as Linkage
 import qualified LLVM.General.AST.Visibility as Visibility
 import qualified LLVM.General.AST.CallingConvention
@@ -35,11 +35,12 @@ import qualified Funk.AST as F
 import qualified Funk.Names as F
 import qualified Funk.Module as Module
 
-import Control.Monad.State
-import Control.Applicative ((<$>))
+import           Control.Applicative ((<$>))
+import           Control.Monad.State
+import           Data.Maybe (fromMaybe)
 
-import Funk.CodeGen.GenIR.Types
-import Funk.CodeGen.GenIR.BuiltIns (getBuiltIn)
+import           Funk.CodeGen.GenIR.Types
+import           Funk.CodeGen.GenIR.BuiltIns (getBuiltIn)
 
 
 showLLVM :: Module.Module F.ResolvedName -> String
@@ -85,9 +86,10 @@ bodyIR body = do
   return [L.BasicBlock blockName b (mkResult r) ]
   where
     mkResult (DoubleResult v) =
-      (L.Do(L.Ret(Just(L.ConstantOperand(L.Float(L.Double v)))) [] ))
+      L.Do (L.Ret (Just (L.ConstantOperand (L.Float (L.Double v)))) [])
     mkResult (NamedResult n) =
-      (L.Do(L.Ret(Just (L.LocalReference (L.FloatingPointType 64 L.IEEE) n)) []))
+      L.Do (L.Ret (Just (L.LocalReference 
+                              (L.FloatingPointType 64 L.IEEE) n)) [])
 
 
 exprIR :: F.Expr F.ResolvedName
@@ -103,14 +105,12 @@ callIR :: F.ResolvedName -> [F.Expr F.ResolvedName]
 callIR n argExprs = do
   (argInstructions, args) <- unzip <$> mapM exprIR argExprs
   (callInstr, callResult) <- mkCall n args
-  let instructions = (concat argInstructions) ++ [callInstr]
+  let instructions = concat argInstructions ++ [callInstr]
   return (instructions, callResult)
 
 mkCall :: Name -> [ExprResult] ->
           GenM (L.Named L.Instruction, ExprResult)
-mkCall n = case getBuiltIn n of
-  Just f  -> f
-  Nothing -> mkCall' n
+mkCall n = fromMaybe (mkCall' n) (getBuiltIn n)
 
 mkCall' :: Name -> [ExprResult] ->
            GenM (L.Named L.Instruction, ExprResult)

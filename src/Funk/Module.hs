@@ -20,11 +20,12 @@ module Funk.Module
       getDecl,
       getDecls,
       addDef,
-      getFunctions
       importDecls,
+      getDefs
     ) where
 
 import qualified Data.Foldable
+import           Data.List (concatMap)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe (catMaybes)
 
@@ -98,10 +99,9 @@ addDef def@(AST.Def n _ _) (Module m) =
 importDecls :: Ord name => Module name -> Module name -> Module name
 importDecls src dest = foldr addDecl dest (getDecls src)
 
--- Just returns the first equation for each function,
+-- Just returns all definitions for all functions as one big list
 -- with no type information. This will want to be updated
 -- once renaming and type checking are farther along.
-getFunctions :: Module name -> [AST.Def name]
-getFunctions (Module es) = map toDef (Map.elems es)
-    where
-      toDef (ModuleEntry _ ds) = head ds
+getDefs :: Module name -> [AST.Def name]
+getDefs (Module es) = concatMap moduleEntryDefs (Map.elems es)
+

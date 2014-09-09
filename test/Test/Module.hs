@@ -117,32 +117,32 @@ testGetDeclsWithOnlyDefs = length (getDecls m) @?= 0
       d = Def "foo" [] (FloatLiteral 1)
 
 testGetDefsEmptyModule =
-    getFunctions empty @=? ([] :: [Def ResolvedName])
+    getDefs empty @=? ([] :: [Def ResolvedName])
 
-testGetDefsCount = length (getFunctions m) @?= 1
+testGetDefsCount = length (getDefs m) @?= 1
     where 
       m = addDef d empty
       d = Def "bar" [] (FloatLiteral 1)
 
-testGetDefsValue = assert $ d `elem` getFunctions m
+testGetDefsValue = assert $ d `elem` getDefs m
     where 
       m = addDef d empty
       d = Def "foo" [] (FloatLiteral 1)
 
-testGetDefsCount2 = length (getFunctions m) @?= 2
+testGetDefsCount2 = length (getDefs m) @?= 2
     where 
       m = foldr addDef empty [d1,d2]
       d1 = Def "foo" [] (FloatLiteral 1)
       d2 = Def "bar" [] (FloatLiteral 2.3)
           
 testGetDefsValue2 = forM_ [d1,d2] $ \d ->
-                     assert $ d `elem` (getFunctions m)
+                     assert $ d `elem` (getDefs m)
     where 
       m = foldr addDef empty [d1,d2]
       d1 = Def "foo" [] (FloatLiteral 1)
       d2 = Def "bar" [] (FloatLiteral 2.3)
 
-testGetDefsWithOnlyDecls = length (getFunctions m) @?= 0
+testGetDefsWithOnlyDecls = length (getDefs m) @?= 0
     where m = addDecl d empty
           d = Decl "foo" (TypeName "Foo")
                             

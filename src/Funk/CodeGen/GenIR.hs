@@ -52,7 +52,7 @@ genIR m =
   where
     ds :: [L.Definition]
     ds = runGen $ do
-      llvmDefs <- mapM defIR (Module.getFunctions m)
+      llvmDefs <- mapM defIR (Module.getDefs m)
       return $ map L.GlobalDefinition llvmDefs
 
 runGen :: GenM a -> a

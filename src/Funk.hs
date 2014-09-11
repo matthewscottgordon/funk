@@ -18,8 +18,8 @@ limitations under the License.
 import qualified Funk.Options as Opt
 import Funk.Options (parseOpts, Options(..))
 import Funk.Names
-import Funk.AST as AST
-import Funk.Module as Module
+import qualified Funk.AST as AST
+import Funk.Module
 import Funk.Parser
 import Funk.Renamer
 import Funk.CodeGen
@@ -38,6 +38,8 @@ import System.IO ( IOMode(ReadMode,WriteMode),
                    hPutStr,
                    stdout)
 
+-- Parse options and pass then call main', then print error message
+-- if there were errors.
 main :: IO ()
 main = do
   r <- runErrorT $ do
@@ -48,35 +50,53 @@ main = do
     Right _ -> return ()
 
 
+-- The real main function. Takes the Options structure created by
+-- main does the actual work.
 main' :: Options -> ErrorT String IO ()
 
+-- Print version and exit
 main' (Options _ Opt.PrintVersion) = liftIO $ putStrLn "Funk prototype"
 
+-- Compile all input files and output LLVM IR
 main' (Options files (Opt.Assembly outFile)) = do
-  asts <- forM files $ \file -> do
-    h <- openSource file
-    text <- liftIO $ hGetContents h
-    compile file text
-  hOut <- liftIO $ case outFile of
-                     Just file -> openFile file WriteMode
-                     Nothing   -> return stdout
-  forM_ asts $ \ast -> do
-    llvmIR <- Funk.CodeGen.showLLVM ast
-    liftIO $ hPutStr hOut llvmIR
-  (liftIO . hClose) hOut
+  modules <- forM files compileFile
+  withDest outFile $ \hOut ->
+      forM_ modules $ \m -> do
+        llvmIR <- Funk.CodeGen.showLLVM m
+        liftIO $ hPutStr hOut llvmIR
 
+-- Compile all input files and produce a binary object file.
 main' (Options _ (Opt.Object _)) = liftIO $ putStrLn "Object"
 
+-- Compile all input files and produce an executable.
 main' (Options _ (Opt.Executable _)) = liftIO $ putStrLn "Executable"
 
 
-openSource :: Opt.Input -> ErrorT String IO Handle
-openSource (Opt.Source filename) = liftIO $ openFile filename ReadMode
+compileFile :: (MonadIO m, MonadError String m) =>
+               Opt.Input -> m (Module ResolvedName)
+compileFile sourceName@(Opt.Source filename) =
+    withFile filename ReadMode $ 
+                 compile sourceName <=< (liftIO . hGetContents)
+
 
 compile :: MonadError String m =>
-           Opt.Input -> String -> m (Module.Module ResolvedName)
+           Opt.Input -> String -> m (Module ResolvedName)
 compile (Opt.Source fileName) input =
   Funk.Parser.parse fileName input >>=
   Funk.Renamer.rename >>=
   Funk.Renamer.collect
 
+
+withFile :: (MonadIO m, MonadError String m) =>
+            FilePath -> IOMode -> (Handle -> m a) -> m a
+withFile filePath mode f = do
+  h <- liftIO $openFile filePath mode
+  r <- f h
+  liftIO $ hClose h
+  return r
+
+
+withDest :: (MonadIO m, MonadError String m) =>
+            Maybe FilePath -> (Handle -> m a) -> m a
+withDest Nothing f = f stdout
+withDest (Just filePath) f = withFile filePath WriteMode f
